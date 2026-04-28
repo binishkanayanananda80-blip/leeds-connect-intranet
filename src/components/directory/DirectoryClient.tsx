@@ -84,14 +84,14 @@ export function DirectoryClient({ users, totalCount }: { users: any[], totalCoun
           {branches.map(b => (
             <button key={b} onClick={() => setActiveBranch(b)}
               className={`px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${
-                activeBranch === b ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white text-gray-400 border border-gray-100 hover:bg-gray-50'
+                activeBranch === b ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'
               }`}>
               {b}
             </button>
           ))}
         </div>
         <div className="bg-white px-5 py-2.5 rounded-[1.25rem] border border-gray-50 shadow-soft">
-          <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest shrink-0">
+          <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest shrink-0">
             Records Shown: <span className="text-primary">{filtered.length}</span> / {totalCount}
           </p>
         </div>
@@ -104,7 +104,7 @@ export function DirectoryClient({ users, totalCount }: { users: any[], totalCoun
             className="bg-white p-20 rounded-[2.5rem] shadow-soft text-center text-gray-400 border border-gray-50">
             <Users className="w-12 h-12 mx-auto mb-4 text-gray-100" />
             <p className="text-xl font-black text-gray-900 uppercase tracking-widest leading-none">No Results</p>
-            <p className="text-xs font-bold text-gray-300 mt-3 uppercase tracking-widest">Try a different name or branch filter</p>
+            <p className="text-xs font-bold text-gray-500 mt-3 uppercase tracking-widest">Try a different name or branch filter</p>
           </motion.div>
         ) : (
           <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
@@ -141,21 +141,21 @@ export function DirectoryClient({ users, totalCount }: { users: any[], totalCoun
 
                     <div className="w-full space-y-2 pt-2 border-t border-gray-50 mt-2">
                       {user.branch && (
-                        <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest justify-center">
-                          <Building2 className="w-3.5 h-3.5 text-gray-300" />
+                        <div className="flex items-center gap-2 text-[10px] text-gray-600 font-bold uppercase tracking-widest justify-center">
+                          <Building2 className="w-3.5 h-3.5 text-gray-500" />
                           <span>{user.branch.name}</span>
                         </div>
                       )}
                       {user.email && (
-                        <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold lowercase tracking-widest justify-center w-full px-2 overflow-hidden">
-                          <Mail className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                        <div className="flex items-center gap-2 text-[10px] text-gray-600 font-bold lowercase tracking-widest justify-center w-full px-2 overflow-hidden">
+                          <Mail className="w-3.5 h-3.5 text-gray-500 shrink-0" />
                           <span className="truncate">{user.email}</span>
                         </div>
                       )}
                     </div>
 
-                    <Link href={`/directory/${user.id}`}
-                      className="mt-4 w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] bg-gray-50 text-gray-400 group-hover:bg-primary group-hover:text-white py-3.5 rounded-2xl transition-all">
+                    <Link href={`/intranet/directory/${user.id}`}
+                      className="mt-4 w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] bg-gray-50 text-gray-600 group-hover:bg-primary group-hover:text-white py-3.5 rounded-2xl transition-all">
                       Profile Intelligence <ChevronRight className="w-4 h-4" />
                     </Link>
                   </div>

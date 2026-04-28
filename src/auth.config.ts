@@ -3,6 +3,7 @@ import type { NextAuthConfig } from 'next-auth';
 const secret = process.env.AUTH_SECRET ?? 'super-secret-leeds-connect-key-for-dev-only';
 
 export const authConfig = {
+  trustHost: true,
   secret,
   pages: {
     signIn: '/login',
@@ -12,7 +13,8 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
       const protectedPaths = [
         '/',
-        '/announcements', '/directory', '/knowledge', '/welfare',
+        '/intranet',
+        '/announcements', '/directory', '/intranet/knowledge', '/welfare',
         '/birthday-wall', '/celebrations', '/leadership',
         '/admin', '/settings', '/menu', '/force-change-password',
       ];
@@ -30,12 +32,12 @@ export const authConfig = {
           return Response.redirect(new URL('/force-change-password', nextUrl));
         }
         if (!isForced && nextUrl.pathname === '/force-change-password') {
-          return Response.redirect(new URL('/', nextUrl)); // Don't allow access if not forced
+          return Response.redirect(new URL('/intranet', nextUrl)); // Redirect away if not forced
         }
         
         return true;
       } else if (isLoggedIn && nextUrl.pathname === '/login') {
-        return Response.redirect(new URL('/', nextUrl));
+        return Response.redirect(new URL('/intranet', nextUrl));
       }
       return true;
     },

@@ -66,3 +66,47 @@ export async function canAtBranch(module: ERPModule, action: ERPAction, branchId
 
   return can(module, action);
 }
+
+export type Role = 'Super Admin' | 'Module Admin' | 'Moderator' | 'User';
+
+export async function getUserRole() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const employee = await prisma.employee.findUnique({
+    where: { userId: session.user.id },
+    include: { role: true, category: true }
+  });
+
+  if (!employee) return null;
+
+  return {
+    roleName: employee.role?.name,
+    isSuperAdmin: employee.role?.name === 'Super Admin',
+    isModuleAdmin: employee.role?.name === 'Module Admin',
+    isModerator: employee.role?.name === 'Moderator',
+    isUser: employee.role?.name === 'User',
+    isCorporateLeadership: employee.category?.name === 'Corporate Leadership',
+    categoryId: employee.categoryId,
+    categoryName: employee.category?.name,
+  };
+}
+
+export async function canAccessAdminPanel() {
+  const role = await getUserRole();
+  if (!role) return false;
+  return role.isSuperAdmin || role.isModuleAdmin || role.isModerator;
+}
+
+export function canSeeContent(
+  contentAudienceFlags: string | null | undefined,
+  userCategoryId: string | null | undefined,
+  isCorporateLeadership: boolean
+) {
+  if (isCorporateLeadership) return true;
+  if (!contentAudienceFlags) return true; 
+  if (!userCategoryId) return false;
+
+  const flags = contentAudienceFlags.split(',').map(f => f.trim());
+  return flags.includes(userCategoryId);
+}

@@ -11,8 +11,27 @@ export default async function ChatConversationPage({ params }: { params: Promise
   const group = await prisma.chatGroup.findUnique({
     where: { id: groupId },
     include: {
-      members: { include: { user: true } },
-      messages: { orderBy: { createdAt: 'asc' }, include: { sender: true } }
+      members: { 
+        include: { 
+          user: { 
+            select: { id: true, name: true, image: true, designation: true } 
+          } 
+        } 
+      },
+      messages: { 
+        where: { isDeleted: false },
+        orderBy: { createdAt: 'asc' }, 
+        include: { 
+          sender: { select: { id: true, name: true, image: true } },
+          reactions: { include: { user: { select: { id: true, name: true } } } },
+          replyTo: { 
+            select: { 
+              id: true, content: true, type: true, fileName: true,
+              sender: { select: { id: true, name: true } }
+            } 
+          }
+        } 
+      }
     }
   })
 
@@ -43,6 +62,16 @@ export default async function ChatConversationPage({ params }: { params: Promise
     orderBy: { updatedAt: 'desc' }
   })
 
+  // Available users for adding to group
+  const availableUsers = await prisma.user.findMany({
+    where: { 
+      isActive: true,
+      isInIntranet: true,
+      id: { not: session.user.id }
+    },
+    select: { id: true, name: true, image: true, designation: true }
+  })
+
   const avatarUrl = isDirect ? peer?.image : group.iconUrl
 
   return (
@@ -54,6 +83,8 @@ export default async function ChatConversationPage({ params }: { params: Promise
       groupId={group.id} 
       currentUser={currentUser}
       allGroups={allGroups}
+      availableUsers={availableUsers}
+      group={group}
     />
   )
 }

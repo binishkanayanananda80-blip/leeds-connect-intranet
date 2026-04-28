@@ -151,7 +151,7 @@ export async function updateUser(formData: FormData) {
 
   revalidatePath('/admin/users')
   revalidatePath('/directory')
-  revalidatePath(`/directory/${id}`)
+  revalidatePath(`/intranet/directory/${id}`)
   return { success: true }
 }
 
@@ -276,22 +276,64 @@ export async function createBranch(formData: FormData) {
   const adminId = await assertAdmin()
   const name = formData.get('name') as string
   const location = formData.get('location') as string
-  const newBranch = await prisma.branch.create({ data: { name, location: location || null } as any })
+  const type = (formData.get('type') as string) || 'BRANCH'
+  const parentId = formData.get('parentId') as string
+  const status = (formData.get('status') as string) || 'ACTIVE'
+
+  const newBranch = await prisma.branch.create({ 
+    data: { 
+      name, 
+      location: location || null,
+      type,
+      parentId: parentId || null,
+      status
+    } as any 
+  })
   
-  await logAdminAction(adminId, 'CREATE', 'BRANCH', newBranch.id, `Created branch: ${name}`)
+  await logAdminAction(adminId, 'CREATE', 'BRANCH', newBranch.id, `Created ${type}: ${name}`)
   
   revalidatePath('/admin/branches')
-  redirect('/admin/branches')
+  revalidatePath('/admin/super/branches')
+  return { success: true, id: newBranch.id }
+}
+
+export async function relocateBranch(branchId: string, targetParentId: string | null) {
+  const adminId = await assertAdmin()
+  
+  // Safety: Prevent self-nesting or circular references
+  if (branchId === targetParentId) {
+    throw new Error('Safety Protocol: An entity cannot become its own parent.')
+  }
+
+  const updated = await prisma.branch.update({
+    where: { id: branchId },
+    data: { parentId: targetParentId }
+  })
+
+  await logAdminAction(adminId, 'RELOCATE', 'BRANCH', branchId, `Relocated branch to parent ID: ${targetParentId}`)
+  
+  revalidatePath('/admin/branches')
+  revalidatePath('/admin/super/branches')
+  return { success: true }
 }
 
 export async function deleteBranch(formData: FormData) {
   const adminId = await assertAdmin()
   const id = formData.get('id') as string
+
+  // Recursive Safety Check
+  const subBranchCount = await prisma.branch.count({ where: { parentId: id } })
+  if (subBranchCount > 0) {
+    throw new Error(`Hierarchy Lock: Cannot delete a node that contains ${subBranchCount} sub-entities. Please relocate or delete children first.`)
+  }
+
   await prisma.branch.delete({ where: { id } })
   
   await logAdminAction(adminId, 'DELETE', 'BRANCH', id, `Deleted branch ID: ${id}`)
   
   revalidatePath('/admin/branches')
+  revalidatePath('/admin/super/branches')
+  return { success: true }
 }
 export async function deletePublishedArticle(formData: FormData) {
   await assertAdmin()
@@ -325,7 +367,7 @@ export async function deletePublishedArticle(formData: FormData) {
     where: { entityType: 'ARTICLE', entityId: { in: idsToDelete } }
   })
 
-  revalidatePath('/knowledge')
+  revalidatePath('/intranet/knowledge')
   revalidatePath('/admin/knowledge-manager')
   revalidatePath(`/intranet/knowledge/${id}`)
   revalidatePath('/')
@@ -352,7 +394,7 @@ export async function approvePublishedArticle(formData: FormData) {
   })
 
   revalidatePath('/admin/content-approvals')
-  revalidatePath('/knowledge')
+  revalidatePath('/intranet/knowledge')
   revalidatePath('/')
 }
 
@@ -369,7 +411,7 @@ export async function rejectPublishedArticle(formData: FormData) {
     data: {
       userId: article.authorId,
       message: `❌ Your article "${article.title}" was not approved. Please contact HR for details.`,
-      link: '/knowledge'
+      link: '/intranet/knowledge'
     }
   })
 
@@ -388,7 +430,7 @@ export async function rejectPublishedArticle(formData: FormData) {
   await prisma.comment.deleteMany({ where: { entityType: 'ARTICLE', entityId: { in: idsToDelete } } })
 
   revalidatePath('/admin/content-approvals')
-  revalidatePath('/knowledge')
+  revalidatePath('/intranet/knowledge')
   revalidatePath('/')
 }
 
@@ -419,14 +461,31 @@ export async function deleteEmployeeCategory(formData: FormData) {
   const adminId = await assertAdmin()
   const id = formData.get('id') as string
 
-  // Safety: Prevent deleting categories with active users
-  const userCount = await prisma.user.count({ where: { employeeCategoryId: id } })
-  if (userCount > 0) {
-    throw new Error(`Cannot delete category: ${userCount} staff members are currently assigned to it.`)
-  }
+  // Strategic Deletion Transaction
+  await prisma.$transaction(async (tx) => {
+    // 1. Unlink all users from this category and its sub-categories
+    await tx.user.updateMany({
+      where: { employeeCategoryId: id },
+      data: { employeeCategoryId: null, employeeSubCategoryId: null }
+    })
 
-  await prisma.employeeCategory.delete({ where: { id } })
-  await logAdminAction(adminId, 'DELETE', 'CATEGORY', id, `Deleted employee category ID: ${id}`)
+    // 2. Purge associated Role Mapping Rules
+    await tx.roleMappingRule.deleteMany({
+      where: { categoryId: id }
+    })
+
+    // 3. Delete child Sub-Categories (Positions)
+    await tx.employeeSubCategory.deleteMany({
+      where: { categoryId: id }
+    })
+
+    // 4. Finally delete the Category itself
+    await tx.employeeCategory.delete({
+      where: { id }
+    })
+  })
+
+  await logAdminAction(adminId, 'DELETE', 'CATEGORY', id, `Performed smart deletion of category ID: ${id}. Unlinked all assigned staff.`)
 
   revalidatePath('/admin/categories')
   revalidatePath('/admin/users')
@@ -460,13 +519,26 @@ export async function deleteEmployeeSubCategory(formData: FormData) {
   const adminId = await assertAdmin()
   const id = formData.get('id') as string
 
-  const userCount = await prisma.user.count({ where: { employeeSubCategoryId: id } })
-  if (userCount > 0) {
-    throw new Error(`Cannot delete position: ${userCount} staff members are assigned to it.`)
-  }
+  // Strategic Position Deletion Transaction
+  await prisma.$transaction(async (tx) => {
+    // 1. Unlink all users from this specific position
+    await tx.user.updateMany({
+      where: { employeeSubCategoryId: id },
+      data: { employeeSubCategoryId: null }
+    })
 
-  await prisma.employeeSubCategory.delete({ where: { id } })
-  await logAdminAction(adminId, 'DELETE', 'SUB_CATEGORY', id, `Deleted sub-category ID: ${id}`)
+    // 2. Purge associated Role Mapping Rules for this position
+    await tx.roleMappingRule.deleteMany({
+      where: { subCategoryId: id }
+    })
+
+    // 3. Delete the Position
+    await tx.employeeSubCategory.delete({
+      where: { id }
+    })
+  })
+
+  await logAdminAction(adminId, 'DELETE', 'SUB_CATEGORY', id, `Performed smart deletion of position ID: ${id}. Unlinked assigned staff.`)
 
   revalidatePath('/admin/categories')
   revalidatePath('/admin/users')

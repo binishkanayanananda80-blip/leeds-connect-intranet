@@ -7,8 +7,9 @@ import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { UserAvatar } from '@/components/ui/UserAvatar'
 import Link from 'next/link'
+import { PermissionMatrixClient } from './PermissionMatrixClient'
 
-export function RolesManagerClient({ roles }: { roles: any[] }) {
+export function RolesManagerClient({ roles, modules }: { roles: any[], modules: any[] }) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const handleUpdate = async (roleId: string, permissions: string) => {
@@ -105,66 +106,12 @@ export function RolesManagerClient({ roles }: { roles: any[] }) {
                     )}
                  </div>
 
-                 <form 
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    const formData = new FormData(e.currentTarget)
-                    handleUpdate(role.id, formData.get('permissions') as string)
-                  }}
-                  className="space-y-6"
-                 >
-                    <div className="relative group/editor">
-                       <div className="absolute top-5 left-5 flex items-center gap-2 px-3 py-1 bg-white/10 rounded-lg text-[10px] font-mono text-gray-400 backdrop-blur-sm">
-                          policy.json
-                       </div>
-                       <textarea 
-                          name="permissions"
-                          defaultValue={role.permissions || '{\n  "canPublish": false,\n  "canModerate": false\n}'}
-                          disabled={role.name === 'Super Admin'}
-                          className="w-full h-48 bg-gray-900 text-gold-leeds/90 p-12 pt-16 rounded-[2.5rem] font-mono text-xs focus:ring-4 focus:ring-primary/10 transition-all outline-none resize-none border-4 border-gray-100 shadow-inner scrollbar-none"
-                       />
-                       <div className="absolute bottom-6 right-8 flex items-center gap-4">
-                          <div className="flex flex-col items-end opacity-0 group-hover/editor:opacity-100 transition-opacity">
-                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Integrity Check Pass</span>
-                             <span className="text-[9px] font-medium text-gray-300">Governance Policy Model</span>
-                          </div>
-                          <button 
-                            type="submit"
-                            disabled={loadingId === role.id || role.name === 'Super Admin'}
-                            className="bg-primary hover:bg-primary/90 text-white p-5 rounded-2xl shadow-xl shadow-primary/30 transition-all disabled:opacity-50"
-                          >
-                             {loadingId === role.id ? (
-                                <Loader2 className="w-6 h-6 animate-spin" />
-                             ) : (
-                                <Save className="w-6 h-6" />
-                             )}
-                          </button>
-                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <div className="p-6 bg-primary/5 rounded-[2rem] border border-primary/10 flex items-center gap-4 hover:bg-primary/10 transition-colors">
-                          <Settings className="w-5 h-5 text-primary" />
-                          <div>
-                             <p className="text-xs font-black text-gray-900 uppercase">Policy Enforcement</p>
-                             <p className="text-[10px] font-medium text-gray-500">Apply strict governance rules</p>
-                          </div>
-                          <div className="ml-auto w-10 h-6 bg-primary rounded-full relative">
-                             <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
-                          </div>
-                       </div>
-                       <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 flex items-center gap-4 opacity-50 grayscale cursor-not-allowed">
-                          <Users className="w-5 h-5 text-gray-400" />
-                          <div>
-                             <p className="text-xs font-black text-gray-900 uppercase">Legacy Sync</p>
-                             <p className="text-[10px] font-medium text-gray-500">Enable bulk coordination</p>
-                          </div>
-                          <div className="ml-auto w-10 h-6 bg-gray-200 rounded-full relative">
-                             <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
-                          </div>
-                       </div>
-                    </div>
-                 </form>
+                  <PermissionMatrixClient 
+                     roleId={role.id} 
+                     roleName={role.name}
+                     modules={modules}
+                     matrix={role.matrix || []}
+                  />
               </div>
             </div>
           </motion.div>

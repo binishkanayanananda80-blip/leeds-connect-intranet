@@ -1,0 +1,426 @@
+const fs = require('fs');
+
+const diff = `
+-  emailVerified          DateTime?
+-  image                  String?
+-  password               String?
+-  organizationId         String?
+-  roleId                 String?
+-  branchId               String?
+-  departmentId           String?
+-  employeeCategoryId     String?
+-  employeeSubCategoryId  String?
+-  joinedDate             DateTime               @default(now())
+-  dateOfBirth            DateTime?
+-  isActive               Boolean                @default(true)
+-  entityStatus           String?                @default("ACTIVE") // DRAFT|PENDING_APPROVAL|ACTIVE|INACTIVE|ARCHIVED
+-  deletedAt              DateTime?
+-  address                String?
+-  mobileNumber           String?
+-  secondaryMobile        String?
+-  landPhone              String?
+-  officialEmail          String?
+-  staffId                String?
+-  epfNo                  String?
+-  etfNo                  String?
+-  nicPassport            String?
+-  passportNo             String?
+-  birthCertNo            String?
+-  drivingLicenseNo       String?
+-  taxId                  String?
+-  gender                 String?
+-  maritalStatus          String?
+-  nationality            String?
+-  religion               String?
+-  employmentStatus       String?                @default("PERMANENT")
+-  reportingManagerId     String?
+-  forcePasswordChange    Boolean                @default(false)
+-  // Current Address
+-  currentAddressLine1    String?
+-  currentAddressLine2    String?
+-  currentAddressLine3    String?
+-  currentCity            String?
+-  currentDistrict        String?
+-  currentProvince        String?
+-  currentPostalCode      String?
+-  currentCountry         String?
+-  // Permanent Address
+-  permanentAddressLine1  String?
+-  permanentAddressLine2  String?
+-  permanentAddressLine3  String?
+-  permanentCity          String?
+-  permanentDistrict      String?
+-  permanentProvince      String?
+-  permanentPostalCode    String?
+-  permanentCountry       String?
+-  telephoneNumber        String?
+-  emergencyContactName   String?
+-  emergencyContactRel    String?
+-  emergencyContactNumber String?
+-  emergencyContactLand   String?
+-  isInIntranet           Boolean                @default(false)
+-  isIntranetRejected     Boolean                @default(false)
+-  isInSchool             Boolean                @default(false)
+-  isSchoolRejected       Boolean                @default(false)
+-  isInFamily             Boolean                @default(false)
+-  isFamilyRejected       Boolean                @default(false)
+-  notes                  String?
+-  designation            String?
+-  lastProbationReminded  DateTime?
+-  bio                    String?
+-  qualifications         String?
+-  leadershipTitle        String?
+-  leadershipTier         String?
+-  leadershipQuote        String?
+-  entitySource           String? // WALK_IN|REFERRAL|ONLINE|SYSTEM
+-  firstRegisteredDate    DateTime?
+-  isDuplicateFlagged     Boolean                @default(false)
+-  // ── Entity Role Mapping ──
+-  isEmployee             Boolean                @default(false)
+-  isParent               Boolean                @default(false)
+-  isStudent              Boolean                @default(false)
+-  isSupplier             Boolean                @default(false)
+-  // ── Module Access ──
+-  activeModules          String? // Comma-separated module slugs
+-  accounts               Account[]
+-  announcements          Announcement[]         @relation("Author")
+-  articles               Article[]              @relation("Author")
+-  reviewedArticles       Article[]              @relation("Reviewer")
+-  contentItems           ContentItem[]          @relation("ContentCreator")
+-  celebrations           Celebration[]
+-  auditLogs              AuditLog[]
+-  ledBranches            Branch[]               @relation("BranchHead")
+-  comments               Comment[]
+-  chatGroups             GroupMember[]
+-  deletedMessages        Message[]              @relation("MessageDeleter")
+-  messages               Message[]
+-  milestones             Milestone[]
+-  notifications          Notification[]
+-  profileUpdates         ProfileUpdateRequest[]
+-  reactions              Reaction[]
+-  sessions               Session[]
+-  theme                  ThemePreference?
+-  reportingManager       User?                  @relation("Manager", fields: [reportingManagerId], references: [id])
+-  subordinates           User[]                 @relation("Manager")
+-  department             Department?            @relation(fields: [departmentId], references: [id])
+-  employeeSubCategory    EmployeeSubCategory?   @relation(fields: [employeeSubCategoryId], references: [id])
+-  employeeCategory       EmployeeCategory?      @relation(fields: [employeeCategoryId], references: [id])
+-  branch                 Branch?                @relation(fields: [branchId], references: [id])
+-  role                   Role?                  @relation(fields: [roleId], references: [id])
+-  organization           Organization?          @relation(fields: [organizationId], references: [id])
+-  virtualMeetings        VirtualMeeting[]
+-
+-  // ── Module-Specific Extensions ──
+-  studentProfile  StudentProfile?
+-  parentProfile   ParentProfile?
+-  supplierProfile SupplierProfile?
+-  employeeProfile Employee?
+-}
+-
+-model Employee {
+-  id              String    @id @default(cuid())
+-  userId          String    @unique
+-  employeeNumber  String    @unique
+-  firstName       String
+-  middleName      String?
+-  lastName        String
+-  addressLine1    String?
+-  addressLine2    String?
+-  addressLine3    String?
+-  mobileNumber    String?
+-  landPhoneNumber String?
+-  nicNumber       String?
+-  dateOfBirth     DateTime?
+-  dateOfJoined    DateTime?
+-  branchId        String?
+-  roleId          String?
+-  categoryId      String?
+-  passwordHash    String?
+-  passwordChanged Boolean   @default(false)
+-  createdAt       DateTime  @default(now())
+-  updatedAt       DateTime  @updatedAt
+-
+-  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+-  branch   Branch?           @relation(fields: [branchId], references: [id])
+-  role     Role?             @relation(fields: [roleId], references: [id])
+-  category EmployeeCategory? @relation(fields: [categoryId], references: [id])
+-
+-  @@map("employees")
+-}
+-
+-model StudentProfile {
+-  userId         String         @id
+-  studentId      String         @unique
+-  gradeId        String?
+-  grade          Grade?         @relation(fields: [gradeId], references: [id])
+-  parentId       String?
+-  parent         ParentProfile? @relation(fields: [parentId], references: [userId])
+-  enrollmentDate DateTime       @default(now())
+-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+-}
+-
+-model ParentProfile {
+-  userId       String           @id
+-  occupation   String?
+-  officeNumber String?
+-  students     StudentProfile[]
+-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+-}
+-
+-model SupplierProfile {
+-  userId       String  @id
+-  companyName  String
+-  brNumber     String? @unique
+-  category     String? // e.g. "STATIONERY", "IT", "CONSTRUCTION"
+-  paymentTerms String?
+-  rating       Int     @default(5)
+-  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+-}
+-
+-model Grade {
+-  id             String           @id @default(cuid())
+-  name           String // e.g. "Grade 1", "AL 2026"
+-  section        String? // e.g. "Local", "London"
+-  organizationId String
+-  organization   Organization     @relation(fields: [organizationId], references: [id])
+-  students       StudentProfile[]
+-
+-  @@unique([name, organizationId])
+-}
+-
+-model Role {
+-  id                String             @id @default(cuid())
+-  name              String
+-  permissions       String
+-  systemRole        String? // SUPER_ADMIN | COMPANY_ADMIN | CORPORATE_ADMIN | NETWORK_ADMIN | MODULE_ADMIN | MODERATOR | END_USER
+-  isSystem          Boolean            @default(false)
+-  permissionLevelId String?
+-  permissionLevel   PermissionLevel?   @relation(fields: [permissionLevelId], references: [id])
+-  organizationId    String
+-  organization      Organization       @relation(fields: [organizationId], references: [id])
+-  users             User[]
+-  matrix            PermissionMatrix[]
+-  mappingRules      RoleMappingRule[]
+-  employees         Employee[]
+-
+-  @@unique([name, organizationId])
+-}
+-
+-model PermissionLevel {
+-  id           String            @id @default(cuid())
+-  rank         Int               @unique // 1-7
+-  name         String
+-  description  String?
+-  roles        Role[]
+-  mappingRules RoleMappingRule[]
+-}
+-
+-model Module {
+-  id             String             @id @default(cuid())
+-  name           String
+-  slug           String             @unique
+-  icon           String?
+-  description    String?
+-  isActive       Boolean            @default(true)
+-  config         String? // JSON configuration
+-  organizationId String
+-  organization   Organization       @relation(fields: [organizationId], references: [id])
+-  permissions    PermissionMatrix[]
+-}
+-
+-model PermissionMatrix {
+-  id         String  @id @default(cuid())
+-  roleId     String
+-  moduleSlug String
+-  canView    Boolean @default(false)
+-  canCreate  Boolean @default(false)
+-  canEdit    Boolean @default(false)
+-  canDelete  Boolean @default(false)
+-  canApprove Boolean @default(false)
+-  canConfig  Boolean @default(false)
+-  role       Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+-  module     Module  @relation(fields: [moduleSlug], references: [slug])
+-
+-  @@unique([roleId, moduleSlug])
+-}
+-
+-model Workflow {
+-  id             String         @id @default(cuid())
+-  name           String
+-  moduleSlug     String
+-  entityType     String // e.g. "PURCHASE_ORDER", "LEAVE_REQUEST"
+-  organizationId String
+-  organization   Organization   @relation(fields: [organizationId], references: [id])
+-  steps          WorkflowStep[]
+-  createdAt      DateTime       @default(now())
+-  updatedAt      DateTime       @updatedAt
+-}
+-
+-model WorkflowStep {
+-  id          String   @id @default(cuid())
+-  workflowId  String
+-  order       Int
+-  roleId      String?
+-  description String?
+-  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+-}
+-
+-model Branch {
+-  id             String  @id @default(cuid())
+-  name           String
+-  location       String?
+-  type           String  @default("BRANCH") // HQ | REGION | BRANCH
+-  status         String  @default("ACTIVE") // ACTIVE | MAINTENANCE | PLANNED
+-  parentId       String? // Recursive Link
+-  branchHeadId   String?
+-  organizationId String
+-
+-  announcements Announcement[]
+-  celebrations  Celebration[]
+-  articles      Article[]
+-
+-  parent       Branch?      @relation("SubBranches", fields: [parentId], references: [id])
+-  subBranches  Branch[]     @relation("SubBranches")
+-  branchHead   User?        @relation("BranchHead", fields: [branchHeadId], references: [id])
+-  organization Organization @relation(fields: [organizationId], references: [id])
+-  users        User[]
+-  employees    Employee[]
+-
+-  @@unique([name, organizationId])
+-}
+-
+-model Department {
+-  id             String       @id @default(cuid())
+-  name           String
+-  organizationId String
+-  organization   Organization @relation(fields: [organizationId], references: [id])
+-  users          User[]
+-
+-  @@unique([name, organizationId])
+-}
+-
+-model EmployeeCategory {
+-  id             String                @id @default(cuid())
+-  name           String
+-  description    String?
+-  slug           String                @unique
+-  organizationId String
+-  organization   Organization          @relation(fields: [organizationId], references: [id])
+-  subCategories  EmployeeSubCategory[]
+-  users          User[]
+-  announcements  Announcement[]        @relation("AnnouncementToEmployeeCategory")
+-  articles       Article[]             @relation("ArticleToEmployeeCategory")
+-  milestones     Milestone[]           @relation("EmployeeCategoryToMilestone")
+-  notifications  Notification[]        @relation("EmployeeCategoryToNotification")
+-  meetings       VirtualMeeting[]      @relation("EmployeeCategoryToVirtualMeeting")
+-  mappingRules   RoleMappingRule[]
+-  employees      Employee[]
+-
+-  @@unique([name, organizationId])
+-}
+-
+-model EmployeeSubCategory {
+-  id          String           @id @default(cuid())
+-  name        String
+-  slug        String           @unique
+-  description String?
+-  categoryId  String
+-  category    EmployeeCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+-  users       User[]
+-
+-  mappingRules RoleMappingRule[]
+-
+-  @@unique([name, categoryId])
+-}
+-`;
+
+const lines = diff.split('\\n');
+const extractedLines = [];
+
+for (let line of lines) {
+  if (line.startsWith('-')) {
+    extractedLines.push(line.substring(1));
+  } else {
+    // empty lines
+    if (line.trim() === '') {
+       extractedLines.push('');
+    } else {
+       extractedLines.push(line);
+    }
+  }
+}
+
+// Write this out
+fs.writeFileSync('scratch/lost_lines.prisma', extractedLines.join('\\n'), 'utf8');
+
+// Now, load the current schema.prisma
+let schema = fs.readFileSync('prisma/schema.prisma', 'utf8');
+
+// We need to inject the extractedLines into schema.prisma right after `email                  String?                @unique`
+const injectPoint = 'email                  String?                @unique';
+if (schema.includes(injectPoint)) {
+   schema = schema.replace(injectPoint, injectPoint + '\\n' + extractedLines.join('\\n'));
+}
+
+fs.writeFileSync('prisma/schema.prisma', schema, 'utf8');
+console.log('Restored the lost models successfully.');
+
+// NOW we apply the new fields:
+// 1. Employee: add subCategoryId, departmentId, designation
+schema = fs.readFileSync('prisma/schema.prisma', 'utf8');
+
+schema = schema.replace(
+\`  roleId          String?
+  categoryId      String?\`,
+\`  roleId          String?
+  categoryId      String?
+  subCategoryId   String?
+  departmentId    String?
+  designation     String?\`
+);
+
+schema = schema.replace(
+\`  category EmployeeCategory? @relation(fields: [categoryId], references: [id])\`,
+\`  category    EmployeeCategory?    @relation(fields: [categoryId], references: [id])
+  subCategory EmployeeSubCategory? @relation(fields: [subCategoryId], references: [id])
+  department  Department?          @relation(fields: [departmentId], references: [id])\`
+);
+
+schema = schema.replace(
+\`model Department {
+  id             String       @id @default(cuid())
+  name           String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  users          User[]\`,
+\`model Department {
+  id             String       @id @default(cuid())
+  name           String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  users          User[]
+  employees      Employee[]\`
+);
+
+schema = schema.replace(
+\`model EmployeeSubCategory {
+  id          String           @id @default(cuid())
+  name        String
+  slug        String           @unique
+  description String?
+  categoryId  String
+  category    EmployeeCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  users       User[]\`,
+\`model EmployeeSubCategory {
+  id          String           @id @default(cuid())
+  name        String
+  slug        String           @unique
+  description String?
+  categoryId  String
+  category    EmployeeCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  users       User[]
+  employees   Employee[]\`
+);
+
+fs.writeFileSync('prisma/schema.prisma', schema, 'utf8');
+console.log('Applied new schema changes successfully.');

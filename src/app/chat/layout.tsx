@@ -9,36 +9,37 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
 
   const myId = session.user.id
   const roleName = (session.user as any)?.roleName
-  const isAdmin = roleName === 'Corporate Admin' || roleName === 'Super Admin'
+  const isAdmin = roleName === 'Corporate Admin' || roleName === 'Super Admin' || roleName === 'Module Admin'
   const myBranch = (session.user as any)?.branchId
 
-  const categories = await prisma.chatGroupCategory.findMany({
-    orderBy: { name: 'asc' }
-  })
-
-  const groupsRaw = await prisma.chatGroup.findMany({
-    where: { members: { some: { userId: myId } } },
-    include: { 
-      members: { 
-        include: { 
-          user: { select: { id: true, name: true, image: true, email: true } } 
-        } 
+  const [categories, groupsRaw, availableUsers, me] = await Promise.all([
+    prisma.chatGroupCategory.findMany({ orderBy: { name: 'asc' } }),
+    prisma.chatGroup.findMany({
+      where: { members: { some: { userId: myId } } },
+      include: { 
+        members: { include: { user: { select: { id: true, name: true, image: true, email: true } } } },
+        messages: { 
+          where: { isDeleted: false },
+          orderBy: { createdAt: 'desc' }, 
+          take: 1,
+          include: { sender: { select: { id: true, name: true } } }
+        },
+        category: true,
       },
-      messages: { 
-        where: { isDeleted: false },
-        orderBy: { createdAt: 'desc' }, 
-        take: 1 
+      orderBy: { updatedAt: 'desc' }
+    }),
+    prisma.user.findMany({
+      where: {
+        isInIntranet: true,
+        ...(isAdmin ? {} : { branchId: myBranch }),
+        role: { name: { not: 'Super Admin' } }
       },
-      category: true,
-      _count: {
-        select: { messages: true }
-      }
-    },
-    orderBy: { updatedAt: 'desc' }
-  })
+      select: { id: true, name: true, image: true, designation: true, role: { select: { name: true } } },
+      orderBy: { name: 'asc' }
+    }),
+    prisma.user.findUnique({ where: { id: myId }, select: { id: true, name: true, image: true, role: { select: { name: true } } } })
+  ])
 
-  // To get a real unread count, we can't easily do it in one prisma query with fields from members
-  // So we'll fetch them separately or just pass lastReadAt to client
   const groups = await Promise.all(groupsRaw.map(async (g) => {
     const myMembership = g.members.find(m => m.userId === myId)
     const unreadCount = await prisma.message.count({
@@ -49,25 +50,29 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
         isDeleted: false
       }
     })
-    return { ...g, unreadCount }
+    return { 
+      ...g, 
+      unreadCount, 
+      isPinned: myMembership?.isPinned || false,
+      isArchived: myMembership?.isArchived || false,
+      isMuted: myMembership?.isMuted || false
+    }
   }))
 
-  const availableUsers = await prisma.user.findMany({
-    where: isAdmin ? undefined : { branchId: myBranch },
-    orderBy: { firstName: 'asc' }
-  })
-
   return (
-    <div className="flex h-screen bg-background pt-0 md:pt-4 pb-16 md:pb-4 px-0 md:px-4 gap-4">
-      <div className="w-full md:w-80 lg:w-96 bg-card border border-border shadow-sm flex flex-col md:rounded-2xl overflow-hidden shrink-0">
+    <div className="flex h-screen bg-[#F8F9FC] pt-0 md:pt-4 pb-16 md:pb-4 px-0 md:px-4 gap-4 overflow-hidden">
+      {/* LEFT: Conversations list */}
+      <div className="w-full md:w-80 lg:w-[360px] flex flex-col overflow-hidden shrink-0 bg-white rounded-[2rem] shadow-soft border border-gray-100">
         <ChatSidebar 
           groups={groups} 
           availableUsers={availableUsers} 
           currentUserId={myId} 
+          currentUser={me}
           categories={categories}
         />
       </div>
-      <div className="flex-1 bg-card border border-border shadow-sm flex flex-col md:rounded-2xl overflow-hidden relative hidden md:flex">
+      {/* RIGHT: Active conversation */}
+      <div className="flex-1 flex flex-col overflow-hidden relative hidden md:flex bg-white rounded-[2rem] shadow-soft border border-gray-100">
         {children}
       </div>
     </div>

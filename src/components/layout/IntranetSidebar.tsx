@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation'
 import {
   Megaphone, Users, BookOpen, Heart,
   Star, Crown, LogOut, ChevronRight,
-  Home, MessageCircle, Video, LayoutDashboard, Lock
+  Home, MessageCircle, Video, LayoutDashboard, Settings,
+  Sparkles, Trophy
 } from 'lucide-react'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -20,10 +21,10 @@ const intranetGroups = [
   {
     label: 'LEEDS CONNECT',
     items: [
-      { name: 'Intranet Home',       href: '/intranet',               icon: Home },
-      { name: 'Announcements',       href: '/intranet/announcements', icon: Megaphone },
-      { name: 'Employee Directory', href: '/intranet/directory',     icon: Users },
-      { name: 'Leadership Hub',     href: '/intranet/leadership',    icon: Crown },
+      { name: 'Dashboard',           href: '/intranet',               icon: Home },
+      { name: 'Leeds News Feed',     href: '/intranet/announcements', icon: Megaphone },
+      { name: 'Employee Directory',  href: '/intranet/directory',     icon: Users },
+      { name: 'Leadership Hub',      href: '/intranet/leadership',    icon: Crown },
     ]
 
   },
@@ -39,30 +40,48 @@ const intranetGroups = [
     items: [
       { name: 'Chat Hub',            href: '/chat',                 icon: MessageCircle },
       { name: 'Meeting Hub',         href: '/meetings',             icon: Video },
-      { name: 'Celebrations',        href: '/intranet/birthday-wall', icon: Star },
+      { name: 'Birthday Wall',       href: '/intranet/birthday-wall', icon: Sparkles },
+      { name: 'Celebrations',        href: '/intranet/celebrations',  icon: Trophy },
     ]
   }
 ]
 
-export function IntranetSidebar({ className }: { className?: string }) {
+export function IntranetSidebar({ 
+  className,
+  userName: propName,
+  userRole: propRole 
+}: { 
+  className?: string,
+  userName?: string,
+  userRole?: string
+}) {
   const pathname = usePathname()
   const { data: session } = useSession()
 
+  const userName = propName || session?.user?.name
+  const userRole = propRole || (session?.user as any)?.roleName
+
   return (
     <aside className={cn(
-      'w-64 flex flex-col bg-white rounded-[2.5rem] shadow-premium border border-primary/10 overflow-y-auto pb-12 transition-all duration-300 h-full',
+      'w-64 flex flex-col bg-primary rounded-[2.5rem] shadow-2xl border-none overflow-y-auto pb-12 transition-all duration-300 h-full',
       className
-    )}>
+    )} suppressHydrationWarning>
 
       {/* Institutional Branding */}
-      <div className="px-10 py-10">
-        <div className="flex flex-col items-start gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shadow-lg shadow-primary/5 border border-primary/10">
-            <Image src="/logo.png" alt="Leeds Logo" width={38} height={38} className="object-contain" />
+      <div className="px-6 py-10 flex justify-center">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="w-36 h-36 rounded-[2rem] bg-white flex items-center justify-center border border-white/20 mb-2 shadow-xl p-2">
+            <Image 
+              src="/logo.png" 
+              alt="Leeds Logo" 
+              width={130} 
+              height={130} 
+              className="object-contain" 
+            />
           </div>
           <div>
-            <h1 className="text-xl font-black tracking-tight text-black leading-none uppercase">Leeds <span className="text-primary">Connect</span></h1>
-            <p className="text-[9px] font-black tracking-[0.2em] text-gold-leeds uppercase mt-2">Institutional <span className="text-primary">Intranet</span></p>
+            <h1 className="text-xl font-black tracking-tight text-white leading-none uppercase">Leeds Connect</h1>
+            <p className="text-[9px] font-bold tracking-[0.2em] text-white/50 uppercase mt-2 leading-tight">Leeds International School<br/>Staff Portal</p>
           </div>
         </div>
       </div>
@@ -71,7 +90,7 @@ export function IntranetSidebar({ className }: { className?: string }) {
       <nav className="flex-1 px-4 py-2 space-y-7">
         {intranetGroups.map((group) => (
           <div key={group.label} className="space-y-2">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-3 pb-1">{group.label}</p>
+            <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] px-3 pb-1">{group.label}</p>
             <div className="space-y-1">
               {group.items.map((item) => {
                 const isActive = pathname === item.href || (item.href !== '/intranet' && pathname.startsWith(item.href))
@@ -80,15 +99,15 @@ export function IntranetSidebar({ className }: { className?: string }) {
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      'flex items-center gap-4 px-4 py-3 rounded-2xl text-[13px] font-black uppercase tracking-wider transition-all group relative border border-transparent',
+                      'flex items-center gap-4 px-4 py-3 rounded-2xl text-[12px] font-black uppercase tracking-wider transition-all group relative',
                       isActive
-                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                        : 'text-gray-400 hover:text-primary hover:bg-primary/5'
+                        ? 'bg-white text-primary shadow-xl'
+                        : 'text-white/70 hover:text-white hover:bg-white/10'
                     )}
                   >
-                    <item.icon className={cn('shrink-0 transition-transform duration-300', isActive ? 'text-white' : 'text-gray-300 group-hover:text-primary group-hover:scale-110')} size={20} />
+                    <item.icon className={cn('shrink-0 transition-transform duration-300', isActive ? 'text-primary' : 'text-white/50 group-hover:text-white group-hover:scale-110')} size={18} />
                     <span className="flex-1 whitespace-nowrap">{item.name}</span>
-                    {isActive && <ChevronRight className="w-3.5 h-3.5 opacity-60" />}
+                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-gold-leeds" />}
                   </Link>
                 )
               })}
@@ -97,27 +116,25 @@ export function IntranetSidebar({ className }: { className?: string }) {
         ))}
       </nav>
 
-      {/* Persistence Toggle: Return to ERP */}
-      <div className="px-6 pb-4 mt-auto border-t border-gray-50 pt-4 space-y-2">
-        <button
-          onClick={() => {
-            const unlockKey = 'leeds_citadel_unlock_leeds-connect'
-            localStorage.removeItem(unlockKey)
-            window.location.href = '/'
-          }}
-          className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-rose-600 hover:bg-rose-50 transition-all group border border-rose-100"
-        >
-          <Lock className="h-4.5 w-4.5 shrink-0" />
-          <span>Lock Leeds Connect</span>
-        </button>
+      {/* Bottom Actions */}
+      <div className="px-6 pb-4 mt-auto border-t border-white/10 pt-6 space-y-2">
+        {['Super Admin', 'Module Admin', 'Moderator'].includes(userRole) && (
+          <Link
+            href="/admin"
+            className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white/90 hover:bg-white/10 transition-all group border border-white/10"
+          >
+            <Settings className="h-4 w-4 shrink-0 opacity-50" />
+            <span>Admin Panel</span>
+          </Link>
+        )}
 
-        <Link
-          href="/"
-          className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all group border border-primary/20"
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-rose-500/20 transition-all group border border-white/5"
         >
-          <LayoutDashboard className="h-4.5 w-4.5 shrink-0" />
-          <span>Exit to ERP</span>
-        </Link>
+          <LogOut className="h-4 w-4 shrink-0 opacity-50" />
+          <span>Logout</span>
+        </button>
       </div>
     </aside>
   )

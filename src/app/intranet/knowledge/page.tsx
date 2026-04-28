@@ -9,42 +9,66 @@ export default async function KnowledgePage() {
 
   const me = await prisma.user.findUnique({ 
     where: { id: session.user.id },
-    include: { role: true, branch: true }
+    include: { role: true, branch: true, employeeCategory: true }
   })
   const roleName = me?.role?.name || ''
-  const isAdmin = ['Super Admin', 'Corporate Admin', 'IT Admin', 'Network Admin'].includes(roleName)
-  const isBranchAdmin = roleName === 'Branch Admin'
+  const isCorporateLeadership = me?.employeeCategory?.name === 'Corporate Leadership'
+  const categoryId = me?.employeeCategory?.name // Using name for audience flag matching as per our publishContent logic
 
-  // Construct robust where clause
-  let where: any = {}
-  
-  if (!isAdmin) {
-    where.AND = [
-      // Status Filter
-      { status: 'APPROVED' },
-      
-      // Branch Scoping
-      isBranchAdmin 
-        ? { branchId: me?.branchId } 
-        : { OR: [{ branchId: me?.branchId }, { branchId: null }] },
-      
-      // Category Targeting
-      {
-        OR: [
-          { targetCategories: { none: {} } },
-          { targetCategories: { some: { id: me?.employeeCategoryId || '' } } }
-        ]
-      }
-    ]
-  }
-
+  // Query Approved Articles (Blog Articles)
   const articlesRaw = await prisma.article.findMany({
-    where,
+    where: { status: 'APPROVED' },
     orderBy: { createdAt: 'desc' },
     include: { 
-      author: { select: { name: true, firstName: true, lastName: true, image: true } },
-      targetCategories: { select: { id: true, name: true } }
+      author: { select: { name: true, image: true } }
     },
+  })
+
+  // Query Content Items
+  const contentItemsRaw = await prisma.contentItem.findMany({
+    where: { status: 'PUBLISHED' },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      createdBy: { select: { name: true, image: true } }
+    }
+  })
+
+  // Filter Content Items by Audience
+  const filteredContentItems = contentItemsRaw.filter(item => {
+    if (isCorporateLeadership) return true;
+    if (!item.audienceFlags) return true;
+    if (!categoryId) return false;
+    
+    const flags = item.audienceFlags.split(',').map(f => f.trim());
+    return flags.includes(categoryId);
+  })
+
+  // Map Content Items to match the Article structure for KnowledgeClient
+  const mappedContentItems = filteredContentItems.map(item => ({
+    id: item.id,
+    title: item.title,
+    content: item.content,
+    documentType: item.contentType, // 'SOP', 'POLICY', 'RESOURCE', 'ANNOUNCEMENT'
+    mainCategory: item.mainCategory || 'Official',
+    category: item.mainCategory || 'Official',
+    subCategory: item.subCategory || null,
+    imageUrl: null,
+    pdfUrl: item.fileUrl,
+    createdAt: item.createdAt,
+    author: {
+      name: item.createdBy.name,
+      image: item.createdBy.image
+    },
+    isMultipart: false,
+    reactions: [],
+    comments: []
+  }))
+
+  // Convert mapped documentType to Title Case if needed (POLICY -> Policy)
+  mappedContentItems.forEach(item => {
+    if (item.documentType === 'POLICY') item.documentType = 'Policy';
+    else if (item.documentType === 'RESOURCE') item.documentType = 'Resource';
+    else if (item.documentType === 'ANNOUNCEMENT') item.documentType = 'Announcement';
   })
 
   // Manual Join for Polymorphic Relations (Comments & Reactions)
@@ -65,5 +89,7 @@ export default async function KnowledgePage() {
     reactions: allReactions.filter(r => r.entityId === a.id)
   }))
 
-  return <KnowledgeClient articles={articlesWithData} session={session} />
+  const combinedData = [...articlesWithData, ...mappedContentItems].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return <KnowledgeClient articles={combinedData} session={session} />
 }

@@ -34,7 +34,7 @@ export function TopNav({
   const displayImage = user?.image || userImage || ''
 
   return (
-    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-4 flex items-center justify-between mb-8">
+    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-4 flex items-center justify-between mb-8" suppressHydrationWarning>
       {/* Mobile Title (hidden on desktop) */}
       <div className="sm:hidden flex items-center gap-2">
         <Image src="/logo.png" alt="Logo" width={24} height={24} className="object-contain" />
@@ -44,11 +44,11 @@ export function TopNav({
       {/* Desktop Search - Elite Pill */}
       <div className="flex-1 max-w-xl hidden sm:block">
         <div className="relative group">
-          <Search className="w-5 h-5 text-gray-300 absolute left-5 top-1/2 -translate-y-1/2 group-focus-within:text-primary transition-all" />
+          <Search className="w-5 h-5 text-gray-400 absolute left-5 top-1/2 -translate-y-1/2 group-focus-within:text-primary transition-all" />
           <input 
             type="text" 
             placeholder="Search Intelligence Center..." 
-            className="w-full bg-gray-50 border-2 border-transparent focus:border-primary/5 focus:bg-white rounded-2xl pl-14 pr-6 py-3.5 text-[11px] font-black uppercase tracking-widest outline-none transition-all placeholder:text-gray-300 shadow-inner"
+            className="w-full bg-gray-50 border-2 border-transparent focus:border-primary/5 focus:bg-white rounded-2xl pl-14 pr-6 py-3.5 text-[11px] font-black uppercase tracking-widest outline-none transition-all placeholder:text-gray-400 shadow-inner"
           />
         </div>
       </div>
@@ -56,13 +56,13 @@ export function TopNav({
       {/* Right Action Icons & Profile */}
       <div className="flex items-center gap-6 ml-auto">
         <div className="flex items-center gap-2 pr-6 border-r border-gray-100">
-          <Link href="/chat" className="p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-xl transition-all relative">
+          <Link href="/chat" className="p-2 text-gray-700 hover:text-primary hover:bg-primary/5 rounded-xl transition-all relative">
             <MessageCircle className="w-5 h-5" />
           </Link>
-          <Link href="/meetings" className="p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-xl transition-all relative">
+          <Link href="/meetings" className="p-2 text-gray-700 hover:text-primary hover:bg-primary/5 rounded-xl transition-all relative">
             <Video className="w-5 h-5" />
           </Link>
-          <Link href="/notifications" className="p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-xl transition-all relative">
+          <Link href="/notifications" className="p-2 text-gray-700 hover:text-primary hover:bg-primary/5 rounded-xl transition-all relative">
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
               <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full border-2 border-white" />

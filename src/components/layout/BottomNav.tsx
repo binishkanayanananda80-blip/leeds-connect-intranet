@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Megaphone, Users, Bell, MessageSquare, Video, MoreHorizontal } from 'lucide-react';
-import { cn } from './Sidebar';
+import { cn } from './IntranetSidebar';
 
 const mobileNavItems = [
   { name: 'Home', href: '/', icon: Home },
@@ -21,7 +21,7 @@ export function BottomNav({ className, unreadCount = 0 }: BottomNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className={cn("fixed bottom-0 w-full bg-white border-t border-gray-50 flex justify-around items-center px-4 py-3 z-50 safe-area-pb shadow-[0_-10px_40px_rgba(0,0,0,0.03)]", className)}>
+    <nav className={cn("fixed bottom-0 w-full bg-white border-t border-gray-50 flex justify-around items-center px-4 py-3 z-50 safe-area-pb shadow-[0_-10px_40px_rgba(0,0,0,0.03)]", className)} suppressHydrationWarning>
       {mobileNavItems.map((item) => {
         const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
         return (

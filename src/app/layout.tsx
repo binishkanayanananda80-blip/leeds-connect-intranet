@@ -34,24 +34,24 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="bg-white text-black antialiased selection:bg-primary/10" suppressHydrationWarning>
-        <SessionProvider>
-          <ThemeProvider>
-            <NavServer>
-              {children}
-            </NavServer>
+        <ClientOnly>
+          <SessionProvider>
+            <ThemeProvider>
+              <NavServer>
+                {children}
+              </NavServer>
 
-            {/* Global Seasonal Overlays */}
-            <ClientOnly>
+              {/* Global Seasonal Overlays */}
               <div suppressHydrationWarning>
                 <SeasonalEngine settings={organizationSetting} />
               </div>
-            </ClientOnly>
 
-            <ClientOnly>
-              <Toaster position="bottom-right" theme="light" richColors />
-            </ClientOnly>
-          </ThemeProvider>
-        </SessionProvider>
+              <div suppressHydrationWarning>
+                <Toaster position="bottom-right" theme="light" richColors />
+              </div>
+            </ThemeProvider>
+          </SessionProvider>
+        </ClientOnly>
       </body>
     </html>
   )

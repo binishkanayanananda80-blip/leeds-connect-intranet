@@ -7,6 +7,11 @@ export default async function IntranetHomePage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
+  // Force password change check
+  if ((session.user as any).forcePasswordChange) {
+    redirect('/force-change-password')
+  }
+
   const dbUser = await prisma.user.findUnique({
     where: { email: session.user.email as string },
     include: { role: true, branch: true, department: true }
@@ -14,6 +19,7 @@ export default async function IntranetHomePage() {
 
   if (!dbUser) redirect('/login')
 
+  const roleName = dbUser.role?.name
   const trueUserId = dbUser.id
   const now = new Date()
   
@@ -28,7 +34,8 @@ export default async function IntranetHomePage() {
     newTeamMembers,
     userCount,
     unreadNotifs,
-    celebrationPopup
+    celebrationPopup,
+    celebrations
   ] = await Promise.all([
     prisma.announcement.findMany({
       take: 4,
@@ -38,25 +45,27 @@ export default async function IntranetHomePage() {
     prisma.user.findMany({
       where: {
         dateOfBirth: { not: null },
-        isInIntranet: true
+        isInIntranet: true,
+        role: roleName === 'Super Admin' ? {} : { name: { not: 'Super Admin' } }
       },
       select: { id: true, name: true, image: true, dateOfBirth: true, joinedDate: true }
     }),
     prisma.article.findMany({
       where: { status: 'APPROVED' },
-      take: 3,
+      take: 10,
       orderBy: { createdAt: 'desc' }
     }),
     prisma.user.findMany({
       where: {
-        joinedDate: { gte: fourteenDaysAgo }
+        joinedDate: { gte: fourteenDaysAgo },
+        isInIntranet: true,
+        role: roleName === 'Super Admin' ? {} : { name: { not: 'Super Admin' } }
       },
       take: 6,
       orderBy: { joinedDate: 'desc' },
-
       include: { role: true, department: true, branch: true }
     }),
-    prisma.user.count(),
+    prisma.user.count({ where: { isInIntranet: true } }),
     prisma.notification.count({
       where: { userId: trueUserId, isRead: false }
     }),
@@ -68,16 +77,23 @@ export default async function IntranetHomePage() {
       },
       orderBy: { publishDate: 'desc' },
       select: { id: true, type: true, title: true, message: true, imageUrl: true, priority: true }
+    }),
+    prisma.celebration.findMany({
+      where: { status: 'APPROVED' },
+      take: 6,
+      orderBy: { publishDate: 'desc' },
+      include: { user: { select: { image: true } } }
     })
   ])
 
-  // Process Birthdays for "Upcoming" (Next 7 days ignoring year)
+  // Process Birthdays for "Upcoming" (Today + Next 7 days, ignoring year)
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const sortedBirthdays = (upcomingBirthdays || [])
     .filter(u => {
       const dob = new Date(u.dateOfBirth!)
       const birthdayThisYear = new Date(now.getFullYear(), dob.getMonth(), dob.getDate())
-      const diff = birthdayThisYear.getTime() - now.getTime()
-      return diff >= -86400000 && diff <= (7 * 86400000)
+      const diff = birthdayThisYear.getTime() - todayMidnight.getTime()
+      return diff >= 0 && diff <= (7 * 86400000)
     })
     .sort((a, b) => {
       const dobA = new Date(a.dateOfBirth!)
@@ -101,12 +117,30 @@ export default async function IntranetHomePage() {
     userCount,
     unreadNotifs,
     birthdayTodayCount: sortedBirthdays.filter(u => {
-      const dob = new Date(u.dateOfBirth!)
-      return dob.getMonth() === now.getMonth() && dob.getDate() === now.getDate()
+      let bmonth, bdate;
+      if (typeof u.dateOfBirth === 'string' && u.dateOfBirth.includes('T')) {
+        const parts = u.dateOfBirth.split('T')[0].split('-');
+        bmonth = parseInt(parts[1], 10) - 1;
+        bdate = parseInt(parts[2], 10);
+      } else {
+        const dob = new Date(u.dateOfBirth!);
+        bmonth = dob.getMonth();
+        bdate = dob.getDate();
+      }
+      return bmonth === now.getMonth() && bdate === now.getDate();
     }).length,
     anniversaryTodayCount: workAnniversaries.filter(u => {
-      const joint = new Date(u.joinedDate!)
-      return joint.getMonth() === now.getMonth() && joint.getDate() === now.getDate()
+      let amonth, adate;
+      if (typeof u.joinedDate === 'string' && u.joinedDate.includes('T')) {
+        const parts = u.joinedDate.split('T')[0].split('-');
+        amonth = parseInt(parts[1], 10) - 1;
+        adate = parseInt(parts[2], 10);
+      } else {
+        const joint = new Date(u.joinedDate!);
+        amonth = joint.getMonth();
+        adate = joint.getDate();
+      }
+      return amonth === now.getMonth() && adate === now.getDate();
     }).length
   }
 
@@ -121,6 +155,7 @@ export default async function IntranetHomePage() {
       stats={stats}
       newTeamMembers={newTeamMembers || []}
       celebrationPopup={celebrationPopup}
+      celebrations={celebrations || []}
     />
   )
 }

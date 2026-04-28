@@ -14,19 +14,16 @@ export async function createGroupChat(formData: FormData) {
 
   if (!name || uiMemberIds.length === 0) throw new Error("Group needs a name and at least one member.")
 
-  // ensure the creator is inside the group
   const memberIds = Array.from(new Set([...uiMemberIds, session.user.id]))
-
   const me = await prisma.user.findUnique({ where: { id: session.user.id } })
   const roleName = (session.user as any)?.roleName
   const isAdmin = roleName === 'Super Admin' || roleName === 'Corporate Admin'
 
-  // Validate constraints
   if (!isAdmin) {
     const targets = await prisma.user.findMany({ where: { id: { in: memberIds } } })
     for (const t of targets) {
       if (t.branchId !== me?.branchId) {
-        throw new Error(`Staff constraint breach: You can only create groups with members from your own branch. User ${t.name} is in a different branch.`)
+        throw new Error(`You can only create groups with members from your own branch.`)
       }
     }
   }
@@ -39,6 +36,7 @@ export async function createGroupChat(formData: FormData) {
     data: {
       name,
       type: 'GROUP',
+      organizationId: 'leeds',
       branchId: isAdmin ? null : me?.branchId,
       description,
       iconUrl,
@@ -62,15 +60,13 @@ export async function createDirectMessage(formData: FormData) {
   const initialMessage = formData.get('initialMessage') as string
   if (!targetId || targetId === session.user.id) throw new Error("Invalid target user")
 
-  // Check if DM exists
   const existing = await prisma.chatGroup.findFirst({
     where: {
       type: 'DIRECT',
-      members: {
-        every: {
-          userId: { in: [session.user.id, targetId] }
-        }
-      }
+      AND: [
+        { members: { some: { userId: session.user.id } } },
+        { members: { some: { userId: targetId } } }
+      ]
     }
   })
 
@@ -80,6 +76,7 @@ export async function createDirectMessage(formData: FormData) {
       data: {
         name: null,
         type: 'DIRECT',
+        organizationId: 'leeds',
         members: {
           create: [{ userId: session.user.id }, { userId: targetId }]
         }
@@ -101,12 +98,13 @@ export async function sendMessage(data: {
   type?: string,
   fileUrl?: string,
   fileName?: string,
-  fileSize?: number
+  fileSize?: number,
+  replyToId?: string
 }) {
   const session = await auth()
   if (!session?.user?.id) throw new Error("Unauthorized")
 
-  const { groupId, content, type = 'TEXT', fileUrl, fileName, fileSize } = data
+  const { groupId, content, type = 'TEXT', fileUrl, fileName, fileSize, replyToId } = data
 
   const membership = await prisma.groupMember.findUnique({
     where: { userId_groupId: { userId: session.user.id, groupId } }
@@ -121,12 +119,18 @@ export async function sendMessage(data: {
       type,
       fileUrl,
       fileName,
-      fileSize
+      fileSize,
+      replyToId: replyToId || null,
     },
     include: {
-      sender: {
-        select: { id: true, name: true, image: true }
-      }
+      sender: { select: { id: true, name: true, image: true } },
+      replyTo: {
+        select: { 
+          id: true, content: true, type: true, fileName: true,
+          sender: { select: { id: true, name: true } }
+        }
+      },
+      reactions: { include: { user: { select: { id: true, name: true } } } }
     }
   })
 
@@ -149,30 +153,180 @@ export async function deleteMessage(messageId: string) {
   const isSender = message.senderId === session.user.id
   const isAdmin = ['Super Admin', 'Corporate Admin', 'IT Admin', 'Network Admin', 'Branch Admin'].includes(roleName)
 
-  // Only sender or admin can delete
   if (!isSender && !isAdmin) throw new Error("Permission denied")
 
   await prisma.message.update({
     where: { id: messageId },
+    data: { isDeleted: true, deletedAt: new Date(), deletedById: session.user.id }
+  })
+
+  revalidatePath(`/chat/${message.groupId}`)
+}
+
+export async function deleteManyMessages(messageIds: string[]) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  // Verify ownership of all messages
+  const messages = await prisma.message.findMany({
+    where: { id: { in: messageIds } }
+  })
+
+  const roleName = (session.user as any)?.roleName
+  const isAdmin = ['Super Admin', 'Corporate Admin', 'IT Admin', 'Network Admin', 'Branch Admin'].includes(roleName)
+
+  for (const msg of messages) {
+    if (msg.senderId !== session.user.id && !isAdmin) {
+      throw new Error("Permission denied: you can only delete your own messages")
+    }
+  }
+
+  await prisma.message.updateMany({
+    where: { id: { in: messageIds } },
+    data: { isDeleted: true, deletedAt: new Date(), deletedById: session.user.id }
+  })
+
+  if (messages[0]?.groupId) revalidatePath(`/chat/${messages[0].groupId}`)
+  return { success: true }
+}
+
+export async function pinMessage(messageId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const message = await prisma.message.findUnique({ where: { id: messageId } })
+  if (!message) throw new Error("Message not found")
+
+  // Verify membership
+  const membership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId: session.user.id, groupId: message.groupId } }
+  })
+  if (!membership) throw new Error("Not a member of this chat")
+
+  const updated = await prisma.message.update({
+    where: { id: messageId },
     data: {
-      isDeleted: true,
-      deletedAt: new Date(),
-      deletedById: session.user.id
+      isPinned: !message.isPinned,
+      pinnedAt: !message.isPinned ? new Date() : null,
+      pinnedById: !message.isPinned ? session.user.id : null,
+    },
+    include: {
+      sender: { select: { id: true, name: true, image: true } },
+      reactions: { include: { user: { select: { id: true, name: true } } } },
+      replyTo: { 
+        select: { 
+          id: true, content: true, type: true, fileName: true,
+          sender: { select: { id: true, name: true } }
+        } 
+      }
     }
   })
 
-  // Log administrative deletion
-  if (!isSender && isAdmin) {
-    await logAdminAction(
-      session.user.id, 
-      'DELETE', 
-      'CHAT_MESSAGE', 
-      messageId, 
-      `Administrative deletion of message by ${session.user.name}`
-    )
+  revalidatePath(`/chat/${message.groupId}`)
+  return updated
+}
+
+export async function toggleReaction(messageId: string, emoji: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const existing = await prisma.messageReaction.findUnique({
+    where: { userId_messageId: { userId: session.user.id, messageId } }
+  })
+
+  if (existing) {
+    if (existing.emoji === emoji) {
+      await prisma.messageReaction.delete({
+        where: { userId_messageId: { userId: session.user.id, messageId } }
+      })
+    } else {
+      await prisma.messageReaction.update({
+        where: { userId_messageId: { userId: session.user.id, messageId } },
+        data: { emoji }
+      })
+    }
+  } else {
+    await prisma.messageReaction.create({
+      data: { messageId, userId: session.user.id, emoji }
+    })
   }
 
-  revalidatePath(`/chat/${message.groupId}`)
+  const updated = await prisma.message.findUnique({ 
+    where: { id: messageId },
+    include: {
+      sender: { select: { id: true, name: true, image: true } },
+      reactions: { include: { user: { select: { id: true, name: true } } } },
+      replyTo: { 
+        select: { 
+          id: true, content: true, type: true, fileName: true,
+          sender: { select: { id: true, name: true } }
+        } 
+      }
+    }
+  })
+
+  if (updated) revalidatePath(`/chat/${updated.groupId}`)
+  return updated
+}
+
+export async function addGroupMember(groupId: string, userId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  // Verify requester is a member
+  const membership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId: session.user.id, groupId } }
+  })
+  if (!membership) throw new Error("Not a member")
+
+  await prisma.groupMember.upsert({
+    where: { userId_groupId: { userId, groupId } },
+    create: { userId, groupId },
+    update: {}
+  })
+
+  revalidatePath(`/chat/${groupId}`)
+  return { success: true }
+}
+
+export async function removeGroupMember(groupId: string, userId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const actualUserId = userId === 'current' ? session.user.id : userId
+
+  const group = await prisma.chatGroup.findUnique({ where: { id: groupId } })
+  if (!group) throw new Error("Group not found")
+
+  const roleName = (session.user as any)?.roleName
+  const isAdmin = ['Super Admin', 'Corporate Admin', 'Module Admin'].includes(roleName)
+  const isGroupAdmin = group.adminId === session.user.id
+  const isSelf = actualUserId === session.user.id
+
+  if (!isAdmin && !isGroupAdmin && !isSelf) throw new Error("Permission denied")
+
+  await prisma.groupMember.delete({
+    where: { userId_groupId: { userId: actualUserId, groupId } }
+  })
+
+  revalidatePath(`/chat/${groupId}`)
+  revalidatePath('/chat')
+  return { success: true }
+}
+
+export async function updateGroupInfo(groupId: string, data: { name?: string, description?: string, iconUrl?: string }) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const membership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId: session.user.id, groupId } }
+  })
+  if (!membership) throw new Error("Not a member")
+
+  await prisma.chatGroup.update({ where: { id: groupId }, data })
+
+  revalidatePath(`/chat/${groupId}`)
+  return { success: true }
 }
 
 export async function deleteChatGroup(groupId: string) {
@@ -191,23 +345,11 @@ export async function deleteChatGroup(groupId: string) {
   const isGroupAdmin = group.adminId === session.user.id
   const isDirect = group.type === 'DIRECT'
 
-  // For DMs, either user can delete. For Groups, only Admin or Role Admin.
   if (!isDirect && !isGroupAdmin && !isAdminRole) {
     throw new Error("Only group admins or platform admins can delete this chat")
   }
 
-  await prisma.chatGroup.delete({
-    where: { id: groupId }
-  })
-
-  // Audit trail
-  await logAdminAction(
-    session.user.id, 
-    'DELETE', 
-    'CHAT_GROUP', 
-    groupId, 
-    `Deleted ${isDirect ? 'Direct Transmission' : 'Group Hub'}: ${group.name || 'Private DM'}`
-  )
+  await prisma.chatGroup.delete({ where: { id: groupId } })
 
   revalidatePath('/chat')
   return { success: true }
@@ -222,7 +364,7 @@ export async function forwardMessages(messageIds: string[], targetGroupId: strin
     orderBy: { createdAt: 'asc' }
   })
 
-  if (messages.length === 0) return
+  if (messages.length === 0) return []
 
   const forwardedMessages = await Promise.all(messages.map(m => {
     return prisma.message.create({
@@ -236,7 +378,8 @@ export async function forwardMessages(messageIds: string[], targetGroupId: strin
         groupId: targetGroupId
       },
       include: {
-        sender: { select: { id: true, name: true, image: true } }
+        sender: { select: { id: true, name: true, image: true } },
+        reactions: { include: { user: { select: { id: true, name: true } } } }
       }
     })
   }))
@@ -246,9 +389,7 @@ export async function forwardMessages(messageIds: string[], targetGroupId: strin
 }
 
 export async function getChatCategories() {
-  return await prisma.chatGroupCategory.findMany({
-    orderBy: { name: 'asc' }
-  })
+  return await prisma.chatGroupCategory.findMany({ orderBy: { name: 'asc' } })
 }
 
 export async function markAsRead(groupId: string) {
@@ -259,4 +400,71 @@ export async function markAsRead(groupId: string) {
     where: { userId_groupId: { userId: session.user.id, groupId } },
     data: { lastReadAt: new Date() }
   })
+}
+
+export async function clearChatMessages(groupId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const membership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId: session.user.id, groupId } }
+  })
+  if (!membership) throw new Error("Not a member of this chat")
+
+  await prisma.message.deleteMany({
+    where: { groupId }
+  })
+
+  revalidatePath(`/chat/${groupId}`)
+  revalidatePath('/chat')
+  return { success: true }
+}
+
+export async function togglePinChat(groupId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const membership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId: session.user.id, groupId } }
+  })
+  if (!membership) throw new Error("Not a member")
+
+  // Using raw SQL to bypass Prisma Client validation in case of stale client
+  const newVal = !membership.isPinned ? 1 : 0
+  await prisma.$executeRaw`UPDATE GroupMember SET isPinned = ${newVal} WHERE id = ${membership.id}`
+
+  revalidatePath('/chat')
+  return { success: true }
+}
+
+export async function toggleArchiveChat(groupId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const membership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId: session.user.id, groupId } }
+  })
+  if (!membership) throw new Error("Not a member")
+
+  const newVal = !membership.isArchived ? 1 : 0
+  await prisma.$executeRaw`UPDATE GroupMember SET isArchived = ${newVal} WHERE id = ${membership.id}`
+
+  revalidatePath('/chat')
+  return { success: true }
+}
+
+export async function toggleMuteChat(groupId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const membership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId: session.user.id, groupId } }
+  })
+  if (!membership) throw new Error("Not a member")
+
+  const newVal = !membership.isMuted ? 1 : 0
+  await prisma.$executeRaw`UPDATE GroupMember SET isMuted = ${newVal} WHERE id = ${membership.id}`
+
+  revalidatePath('/chat')
+  return { success: true }
 }

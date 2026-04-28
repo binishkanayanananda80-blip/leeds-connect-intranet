@@ -14,6 +14,7 @@ import {
 import { CustomHeart } from '@/components/ui/CustomHeart'
 import { UserAvatar } from '@/components/ui/UserAvatar'
 import { createArticle, addComment } from '@/app/intranet/knowledge/actions'
+import { JustifiedContent } from '@/components/knowledge/JustifiedContent'
 import { toggleReaction } from '@/lib/reactions'
 import { toast } from 'sonner'
 
@@ -49,6 +50,8 @@ const OPERATIONS_SECTIONS = [
 
 const DOCUMENT_TYPES = ['Policy', 'SOP', 'Resource', 'Blog Article']
 
+const cleanTitle = (t: string) => t?.replace(/ - Part \d+$/, '')
+
 export function KnowledgeClient({ articles, session }: { articles: any[], session: any }) {
   const [activeTab, setActiveTab] = useState('All')
   const [search, setSearch] = useState('')
@@ -63,9 +66,9 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
   const roleName = session?.user?.roleName
   const isAdmin = roleName === 'Corporate Admin' || roleName === 'Super Admin'
 
-  // Filtering Logic
+  // Filtering & Sorting Logic
   const filtered = useMemo(() => {
-    return articles.filter(a => {
+    const raw = articles.filter(a => {
       const matchSearch = !search || 
         a.title.toLowerCase().includes(search.toLowerCase()) || 
         a.content.toLowerCase().includes(search.toLowerCase()) ||
@@ -80,6 +83,42 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
       if (activeTab === 'Blog Articles' && (a.documentType === 'Blog Article' || a.category === 'Blog')) return true
       
       return false
+    })
+
+    // Group By Family (parentId or id) and sort by newest Part 1
+    // Part 1 is the anchor. Other parts have parentId = anchorId.
+    const familyMap: Record<string, any> = {}
+    raw.forEach(a => {
+      const fid = a.parentId || a.id
+      if (!familyMap[fid]) {
+        // Find the "anchor" article for this family to get the sort date
+        const anchor = articles.find(allA => allA.id === fid) || a
+        familyMap[fid] = {
+          anchorDate: new Date(anchor.createdAt).getTime(),
+          fid
+        }
+      }
+    })
+
+    return raw.sort((a, b) => {
+      const fidA = a.parentId || a.id
+      const fidB = b.parentId || b.id
+      
+      const metaA = familyMap[fidA]
+      const metaB = familyMap[fidB]
+
+      // Primary: Sort by the family's anchor date (desc)
+      if (metaB.anchorDate !== metaA.anchorDate) {
+        return metaB.anchorDate - metaA.anchorDate
+      }
+
+      // Secondary: Sort by secondary ID to keep families together if dates match
+      if (fidA !== fidB) {
+        return fidA.localeCompare(fidB)
+      }
+
+      // Tertiary: Sort by part number (asc)
+      return (a.partNumber || 1) - (b.partNumber || 1)
     })
   }, [articles, activeTab, search])
 
@@ -118,7 +157,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
 
   const onToggleEmoji = async (articleId: string, emoji: string) => {
     try {
-      await toggleReaction('ARTICLE', articleId, emoji, '/knowledge')
+      await toggleReaction('ARTICLE', articleId, emoji, '/intranet/knowledge')
     } catch (err) {
       toast.error('Failed to react')
     }
@@ -133,7 +172,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
           {NAVIGATION_TABS.map(tab => (
             <button key={tab} onClick={() => handleTabClick(tab)}
               className={`px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                activeTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-transparent text-gray-400 hover:text-primary hover:bg-primary/5'
+                activeTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-transparent text-gray-600 hover:text-primary hover:bg-primary/5'
               }`}>
               {tab}
             </button>
@@ -142,11 +181,11 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
 
         <div className="flex items-center gap-4 w-full md:w-auto pr-4">
           <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input 
               type="text" placeholder="Search Knowledge..." value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all font-bold"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all font-bold placeholder:text-gray-500"
             />
           </div>
           <button 
@@ -160,7 +199,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
 
       {/* ── BREADCRUMBS ── */}
       {(filterSub || filterSection) && (
-        <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+        <div className="flex items-center gap-2 px-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">
            <span>{activeTab}</span>
            <ChevronRight className="w-3 h-3" />
            <span className="text-primary">{filterSub}</span>
@@ -195,8 +234,8 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
         {(activeTab === 'All' || activeTab === 'Policies' || activeTab === 'SOPs') && sopsAndPolicies.length > 0 && (
           <section className="space-y-6">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 flex items-center gap-3">
-                <FileCheck2 className="w-5 h-5 text-blue-600" /> SOPs & Institutional Policies
+              <h2 className="text-lg font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-3">
+                <FileCheck2 className="w-6 h-6 text-blue-600" /> SOPs & Institutional Policies
               </h2>
               <div className="h-px flex-1 bg-slate-100 mx-6 hidden md:block" />
             </div>
@@ -216,8 +255,8 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
         {(activeTab === 'All' || activeTab === 'Blog Articles') && blogArticles.length > 0 && (
           <section className="space-y-6">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 flex items-center gap-3">
-                <BookOpen className="w-5 h-5 text-emerald-600" /> Professional Blog Articles
+              <h2 className="text-lg font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-3">
+                <BookOpen className="w-6 h-6 text-emerald-600" /> Professional Blog Articles
               </h2>
               <div className="h-px flex-1 bg-slate-100 mx-6 hidden md:block" />
             </div>
@@ -238,8 +277,8 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
         {(activeTab === 'All' || activeTab === 'Resources') && resourceArticles.length > 0 && (
           <section className="space-y-6">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 flex items-center gap-3">
-                <LayoutDashboard className="w-5 h-5 text-amber-600" /> Resource Library
+              <h2 className="text-lg font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-3">
+                <LayoutDashboard className="w-6 h-6 text-amber-600" /> Resource Library
               </h2>
               <div className="h-px flex-1 bg-slate-100 mx-6 hidden md:block" />
             </div>
@@ -298,23 +337,36 @@ function FeaturedKnowledgeCard({ article, userId, onReact, onCommentClick, onVie
 
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[3.5rem] overflow-hidden shadow-premium border border-gray-50 flex flex-col lg:flex-row min-h-[450px]">
-      <div className="lg:w-1/2 relative min-h-[300px] bg-gray-50">
-        <img src={article.imageUrl || '/images/placeholder-knowledge.jpg'} alt="" className="absolute inset-0 w-full h-full object-contain" />
+      <div className="lg:w-1/2 relative min-h-[300px] bg-gray-200 overflow-hidden group">
+        {isPDF && !article.imageUrl ? (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden bg-white group-hover:scale-105 transition-transform duration-700">
+             <iframe src={`${article.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} className="absolute top-0 left-0 w-[125%] h-[300%] border-0 select-none opacity-90 transform scale-[0.8] origin-top-left" />
+             {/* Gradient Overlay for the "description in the placeholder" effect */}
+             <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-gray-100/95 via-gray-50/80 to-transparent pointer-events-none" />
+             <div className="absolute bottom-10 left-[10%] w-[80%] p-8 bg-white/95 backdrop-blur-md rounded-[2rem] shadow-2xl border border-gray-100">
+                <h4 className="text-2xl font-black uppercase text-gray-900 leading-tight mb-3">{article.title}</h4>
+                <p className="text-sm font-bold text-gray-500 line-clamp-2">{article.content}</p>
+             </div>
+          </div>
+        ) : (
+          <img src={article.imageUrl || '/images/placeholder-knowledge.jpg'} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+        )}
         <div className="absolute top-8 left-8"><span className="px-6 py-2 rounded-full bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-xl">Latest Release</span></div>
       </div>
       <div className="lg:w-1/2 p-10 md:p-14 flex flex-col justify-center space-y-8">
         <div className="space-y-4">
           <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-gold-leeds"><Sparkles className="w-4 h-4" /> {article.documentType} · {article.mainCategory}</div>
-          <h2 className="text-3xl md:text-4xl font-black text-gray-900 leading-tight">{article.title} {article.isMultipart && <span className="text-primary ml-4">Part {article.partNumber}</span>}</h2>
+          <h2 className="text-3xl md:text-4xl font-black text-gray-900 leading-tight">{cleanTitle(article.title)} {article.isMultipart && <span className="text-primary ml-4">Part {article.partNumber}</span>}</h2>
           
           <motion.div 
             initial={false}
             animate={{ height: isExpanded ? 'auto' : '100px' }}
             className="overflow-hidden relative"
           >
-            <p className={`text-sm md:text-base text-gray-500 font-medium leading-relaxed ${!isExpanded && 'line-clamp-4'}`}>
-              {article.content}
-            </p>
+            <JustifiedContent 
+              content={article.content}
+              className={`text-sm md:text-base text-gray-500 font-medium ${!isExpanded ? 'line-clamp-4' : ''}`}
+            />
             {!isExpanded && article.content.length > 200 && (
               <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-white to-transparent pointer-events-none" />
             )}
@@ -331,10 +383,10 @@ function FeaturedKnowledgeCard({ article, userId, onReact, onCommentClick, onVie
           )}
         </div>
         <div className="flex items-center justify-between pt-8 border-t border-gray-100">
-           <div className="flex items-center gap-3"><UserAvatar imageUrl={article.author.image} name={article.author.name} size="md" /><div><p className="text-xs font-black uppercase leading-none">{article.author.name}</p><p className="text-[10px] font-bold text-gray-400 mt-1">{format(new Date(article.createdAt), 'MMM dd, yyyy')}</p></div></div>
+           <div className="flex items-center gap-3"><UserAvatar imageUrl={article.author.image} name={article.author.name} size="md" /><div><p className="text-xs font-black uppercase leading-none">{article.author.name}</p><p className="text-[10px] font-bold text-gray-500 mt-1">{format(new Date(article.createdAt), 'MMM dd, yyyy')}</p></div></div>
            <div className="flex items-center gap-6">
               <div className="flex -space-x-1">{reactionEmojis.map(emoji => (<ReactionIcon key={emoji} emoji={emoji} data={reactionsMap[emoji]} onClick={() => onReact(article.id, emoji)} />))}</div>
-              <button onClick={onCommentClick} className="flex items-center gap-2 text-gray-300 hover:text-gold-leeds transition-colors"><MessageCircle className="w-5 h-5" /><span className="text-xs font-black">{article.comments?.length || 0}</span></button>
+              <button onClick={onCommentClick} className="flex items-center gap-2 text-gray-500 hover:text-gold-leeds transition-colors"><MessageCircle className="w-5 h-5" /><span className="text-xs font-black">{article.comments?.length || 0}</span></button>
            </div>
         </div>
         <div className="flex gap-4">{isPDF ? (
@@ -357,14 +409,6 @@ function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onView
   const isPDF = !!article.pdfUrl
   const reactionEmojis = ['❤️', '👍', '👎', '👏']
   
-  // 500 word limit corresponds to roughly 3000-3500 chars.
-  // We'll enforce it specifically for blogs if they exceed that.
-  const wordLimit = 500
-  const contentWords = article.content.split(/\s+/)
-  const isOverLimit = contentWords.length > wordLimit
-  const displayedContent = (isBlog && isOverLimit && !isExpanded) 
-    ? contentWords.slice(0, wordLimit).join(' ') + '...' 
-    : article.content
   const reactionsMap = useMemo(() => {
     const map: Record<string, { count: number, userList: string[], hasReacted: boolean }> = {}
     reactionEmojis.forEach(e => map[e] = { count: 0, userList: [], hasReacted: false })
@@ -374,36 +418,58 @@ function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onView
 
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="group bg-white rounded-[3rem] overflow-hidden shadow-soft border border-gray-50 flex flex-col">
-      <div className="relative h-56 overflow-hidden bg-gray-50 flex items-center justify-center p-2">
-        <img src={article.imageUrl || '/images/placeholder-knowledge.jpg'} alt="" className="max-w-full max-h-full w-auto h-auto object-contain group-hover:scale-110 transition-transform duration-700" />
-        <div className="absolute top-6 left-6"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border backdrop-blur-md ${article.documentType === 'Policy' ? 'bg-primary/20 text-primary border-primary/20' : article.documentType === 'SOP' ? 'bg-black/20 text-black border-black/20' : 'bg-gold-leeds/20 text-gold-leeds border-gold-leeds/20'}`}>{article.documentType}</span></div>
+      <div className="relative h-56 overflow-hidden bg-gray-200 group-hover:bg-gray-300 transition-colors">
+        {isPDF && !article.imageUrl ? (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden bg-white group-hover:scale-105 transition-transform duration-700">
+             <iframe src={`${article.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} className="absolute top-0 left-0 w-[125%] h-[300%] border-0 select-none opacity-80 transform scale-[0.8] origin-top-left" />
+             <div className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-t from-gray-100/95 via-gray-50/40 to-transparent pointer-events-none" />
+             <div className="absolute bottom-4 left-[5%] w-[90%] p-5 bg-white/95 backdrop-blur-md rounded-[1.5rem] shadow-xl border border-gray-100">
+                <h4 className="text-sm font-black uppercase text-gray-900 leading-tight mb-2 line-clamp-1">{article.title}</h4>
+                <p className="text-[10px] font-bold text-gray-500 line-clamp-2">{article.content}</p>
+             </div>
+          </div>
+        ) : (
+          <img src={article.imageUrl || '/images/placeholder-knowledge.jpg'} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+        )}
+        <div className="absolute top-6 left-6"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border backdrop-blur-md shadow-lg ${article.documentType === 'Policy' ? 'bg-primary/20 text-primary border-primary/20' : article.documentType === 'SOP' ? 'bg-black/20 text-black border-black/20' : 'bg-gold-leeds/20 text-gold-leeds border-gold-leeds/20'}`}>{article.documentType}</span></div>
         {isPDF && <div className="absolute top-6 right-6"><div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white"><FileIcon className="w-5 h-5" /></div></div>}
       </div>
       <div className="p-8 flex-1 flex flex-col space-y-4">
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase"><Clock className="w-3.5 h-3.5" /> {format(new Date(article.createdAt), 'MMM dd, yyyy')}</div>
-          <h3 className="text-xl font-black text-gray-900 group-hover:text-primary transition-colors leading-tight line-clamp-2">{article.title} {article.isMultipart && <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded">Part {article.partNumber}</span>}</h3>
+          <div className="flex items-center gap-2 text-[9px] font-black text-gray-600 uppercase"><Clock className="w-3.5 h-3.5" /> {format(new Date(article.createdAt), 'MMM dd, yyyy')}</div>
+          <h3 className="text-xl font-black text-gray-900 group-hover:text-primary transition-colors leading-tight line-clamp-2">{cleanTitle(article.title)} {article.isMultipart && <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded">Part {article.partNumber}</span>}</h3>
           
           <div className="relative">
-            <p className={`text-xs font-medium text-slate-500 leading-relaxed ${(!isExpanded && !isBlog) && 'line-clamp-3'}`}>
-              {displayedContent}
-            </p>
-            {(article.content.length > 100 || isOverLimit) && (
+            <motion.div
+              initial={false}
+              animate={{ height: isExpanded ? 'auto' : '65px' }}
+              className="overflow-hidden relative"
+            >
+              <JustifiedContent
+                content={article.content}
+                className={`text-xs font-medium text-slate-500 ${!isExpanded ? 'line-clamp-3' : ''}`}
+              />
+              {!isExpanded && article.content.length > 100 && (
+                <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+              )}
+            </motion.div>
+            
+            {article.content.length > 100 && (
               <button 
                 onClick={(e) => { e.preventDefault(); setIsExpanded(!isExpanded); }}
-                className="text-[9px] font-black uppercase tracking-tighter text-blue-600 mt-2 flex items-center gap-1 hover:underline"
+                className="text-[10px] font-black uppercase tracking-tighter text-blue-600 mt-3 flex items-center gap-1 hover:underline"
               >
                 {isExpanded ? 'Show Less' : 'Read More'}
-                <ChevronDown className={`w-2.5 h-2.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
               </button>
             )}
           </div>
         </div>
         <div className="pt-6 border-t border-gray-50 mt-auto flex items-center justify-between">
-          <div className="flex items-center gap-2"><UserAvatar imageUrl={article.author.image} name={article.author.name} size="xs" /><span className="text-[10px] font-black uppercase text-gray-900">{article.author.name.split(' ')[0]}</span></div>
+          <div className="flex items-center gap-2"><UserAvatar imageUrl={article.author.image} name={article.author.name} size="xs" /><span className="text-[10px] font-black uppercase text-black">{article.author.name.split(' ')[0]}</span></div>
           <div className="flex items-center gap-4">
             <div className="flex -space-x-1">{reactionEmojis.map(emoji => (<ReactionIcon key={emoji} emoji={emoji} data={reactionsMap[emoji]} onClick={() => onReact(article.id, emoji)} />))}</div>
-            <button onClick={onCommentClick} className="flex items-center gap-1.5 text-gray-300 hover:text-gold-leeds"><MessageCircle className="w-4 h-4" /><span className="text-[10px] font-black">{article.comments?.length || 0}</span></button>
+            <button onClick={onCommentClick} className="flex items-center gap-1.5 text-gray-500 hover:text-gold-leeds"><MessageCircle className="w-4 h-4" /><span className="text-[10px] font-black">{article.comments?.length || 0}</span></button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3 pt-2">
@@ -461,11 +527,11 @@ function CommentModal({ article, onClose, user }: { article: any, onClose: () =>
       }
     }
 
-    addOptimisticComment(newComment)
     const currentText = commentText
     setCommentText('')
 
     startTransition(async () => {
+      addOptimisticComment(newComment)
       const fd = new FormData()
       fd.append('articleId', article.id)
       fd.append('content', currentText)
@@ -595,7 +661,7 @@ function CategoryFilterModal({ isOpen, onClose, activeTab, onSelect }: any) {
 function AddKnowledgeModal({ isOpen, onClose, isAdmin }: any) {
   const [step, setStep] = useState(1); const [formData, setFormData] = useState({ documentType: '', mainCategory: '', subCategory: '', academicCategory: '', title: '', description: '', visibility: 'ALL', isMultipart: false, tags: '' }); const [loading, setLoading] = useState(false); const formRef = useRef<HTMLFormElement>(null)
   if (!isOpen) return null; const handleNext = () => setStep(step + 1); const handleBack = () => setStep(step - 1)
-  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); setLoading(true); const fd = new FormData(formRef.current!); fd.append('isMultipart', formData.isMultipart.toString()); try { await createArticle(fd); toast.success('Submitted!'); onClose(); setStep(1) } catch (err: any) { toast.error(err.message) } finally { setLoading(false) } }
+  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); setLoading(true); const fd = new FormData(formRef.current!); fd.append('isMultipart', formData.isMultipart.toString()); try { await createArticle(fd); toast.success('Submitted!'); onClose(); setStep(1) } catch (err: any) { if (err?.message === 'NEXT_REDIRECT' || err?.digest?.startsWith('NEXT_REDIRECT')) { onClose(); setStep(1); return; } toast.error(err.message) } finally { setLoading(false) } }
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} className="absolute inset-0 bg-primary/30 backdrop-blur-xl" />
@@ -608,7 +674,14 @@ function AddKnowledgeModal({ isOpen, onClose, isAdmin }: any) {
                   <Plus className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black uppercase text-gray-900 tracking-tight">Add <span className="text-gold-leeds">Knowledge</span></h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-black uppercase text-gray-900 tracking-tight">Add <span className="text-gold-leeds">Knowledge</span></h2>
+                    {formData.title && (
+                      <span className="px-3 py-1 bg-primary/5 text-primary text-[9px] font-black rounded-full border border-primary/10 animate-in fade-in slide-in-from-left-2">
+                        {formData.title}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Resource Creation Suite</p>
                 </div>
               </div>
@@ -636,10 +709,10 @@ function AddKnowledgeModal({ isOpen, onClose, isAdmin }: any) {
             {step === 4 && (<motion.div key="4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="space-y-8">
                {formData.mainCategory === 'Academic' && (<div className="space-y-4 bg-gray-50 p-6 rounded-3xl border border-gray-100"><p className="text-[9px] font-black uppercase text-gray-400">Final Focus</p><select name="academicCategory" required className="w-full bg-white border border-gray-200 p-4 rounded-2xl text-xs font-bold"><option value="">Select Focus...</option>{ACADEMIC_SECTIONS.map(sec => <option key={sec} value={sec}>{sec}</option>)}</select></div>)}
                <div className="space-y-6">
-                  <input name="title" required placeholder="Resource Title..." className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl text-sm font-bold outline-none" />
-                  <textarea name="description" required rows={5} placeholder="Full content..." className="w-full bg-gray-50 border border-gray-100 p-5 rounded-3xl text-sm font-medium outline-none" />
+                  <input name="title" required placeholder="Resource Title..." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl text-sm font-bold outline-none" />
+                  <textarea name="content" required rows={5} placeholder="Full content..." className="w-full bg-gray-50 border border-gray-100 p-5 rounded-3xl text-sm font-medium outline-none" />
                   <div className="flex items-center gap-3"><input type="checkbox" id="isMultipart" checked={formData.isMultipart} onChange={e => setFormData({...formData, isMultipart: e.target.checked})} className="w-4 h-4 rounded text-primary" /><label htmlFor="isMultipart" className="text-xs font-black text-primary uppercase cursor-pointer">Multi-Part split</label></div>
-                  <div className="grid grid-cols-2 gap-6"><div className="space-y-2"><label className="text-[10px] font-black text-gray-400">Image</label><input type="file" name="image" accept="image/*" required className="w-full text-xs" /></div><div className="space-y-2"><label className="text-[10px] font-black text-gray-400">PDF</label><input type="file" name="pdf" accept=".pdf" className="w-full text-xs" /></div></div>
+                  <div className="grid grid-cols-2 gap-6"><div className="space-y-2"><label className="text-[10px] font-black text-gray-400">Image {formData.documentType === 'Blog Article' && <span className="text-red-500">*</span>}</label><input type="file" name="image" accept="image/*" required={formData.documentType === 'Blog Article'} className="w-full text-xs" /></div><div className="space-y-2"><label className="text-[10px] font-black text-gray-400">PDF</label><input type="file" name="pdf" accept=".pdf" className="w-full text-xs" /></div></div>
                   <div className="space-y-4"><label className="text-[10px] font-black text-gray-400">Visibility</label><div className="flex flex-wrap gap-2">{['ALL', 'Academic Staff Only', 'Operations Staff Only'].map(v => (<button key={v} type="button" onClick={() => setFormData({...formData, visibility: v})} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase ${formData.visibility === v ? 'bg-primary text-white shadow-lg' : 'bg-gray-100 text-gray-400'}`}>{v}</button>))}<input type="hidden" name="visibility" value={formData.visibility} /></div></div>
                </div>
                <div className="flex gap-4"><button type="button" onClick={handleBack} className="flex-1 py-4 bg-gray-100 text-gray-400 rounded-2xl font-black uppercase text-[10px]">Back</button><button type="submit" disabled={loading} className="flex-[2] py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] shadow-xl disabled:opacity-50">{loading ? 'Publishing...' : 'Publish'}</button></div>

@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FileText, Megaphone, PartyPopper, CheckSquare, Settings, LayoutDashboard, Plus, Search, Eye, Download, Users, X, FileCheck2, Filter, ChevronRight, UploadCloud, Calendar, Clock, Lock } from 'lucide-react'
+import { FileText, Megaphone, PartyPopper, CheckSquare, Settings, LayoutDashboard, Plus, Search, Eye, Download, Users, X, FileCheck2, Filter, ChevronRight, UploadCloud, Calendar, Clock, Lock, Database, Trash2, AlertCircle } from 'lucide-react'
+import { format } from 'date-fns'
 import { toast } from 'sonner'
-import { uploadSopPolicy, createCelebration, toggleIntranetSetting, createAnnouncement, deleteAnnouncement } from '@/app/admin/intranet/actions'
+import { uploadSopPolicy, createCelebration, toggleIntranetSetting, createAnnouncement, deleteAnnouncement, getArchiveContent, deleteIntranetContentBulk, deleteArticle, deleteCelebration, revokeIntranetCitizen } from '@/app/admin/intranet/actions'
 import { approvePublishedArticle, rejectPublishedArticle } from '@/app/admin/actions'
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
   { id: 'approvals', label: 'Approval Queue', icon: CheckSquare },
   { id: 'announcements', label: 'Announcements', icon: Megaphone },
   { id: 'celebrations', label: 'Celebrations', icon: PartyPopper },
+  { id: 'archive', label: 'Content Archive', icon: Database },
   { id: 'settings', label: 'Settings', icon: Settings },
 ]
 
@@ -124,6 +126,7 @@ export function IntranetAdminClient({ roleName, initialDashboardData, initialPen
             <CitizenryTab
               key="citizenry"
               entities={dashboardData?.registeredEntities || []}
+              pendingCitizens={dashboardData?.pendingCitizens || []}
             />
           )}
           {activeTab === 'sops' && (
@@ -165,6 +168,9 @@ export function IntranetAdminClient({ roleName, initialDashboardData, initialPen
                 }
               }}
             />
+          )}
+          {activeTab === 'archive' && (
+            <ArchiveTab key="archive" />
           )}
           {activeTab === 'settings' && (
             <SettingsTab 
@@ -511,9 +517,27 @@ function CelebrationManagerTab({ celebrations, onNewClick, onDelete }: any) {
 // ─────────────────────────────────────────────────────────────────────────────
 // CITIZENRY TAB (Registered Entities)
 // ─────────────────────────────────────────────────────────────────────────────
-function CitizenryTab({ entities }: { entities: any[] }) {
+function CitizenryTab({ entities, pendingCitizens }: { entities: any[]; pendingCitizens: any[] }) {
   const [loading, setLoading] = useState(false)
-  const [entityId, setEntityId] = useState('')
+  const [confirmingRemoval, setConfirmingRemoval] = useState<any>(null)
+  const [processing, setProcessing] = useState(false)
+
+  const handleRevoke = async () => {
+    if (!confirmingRemoval) return
+    setProcessing(true)
+    try {
+      const res = await revokeIntranetCitizen(confirmingRemoval.id)
+      if (res.success) {
+        toast.success(`Broadcasting access revocation for ${confirmingRemoval.name}. Data purged.`)
+        setConfirmingRemoval(null)
+        setTimeout(() => window.location.reload(), 1000)
+      }
+    } catch (e) {
+      toast.error("Revocation failure.")
+    } finally {
+      setProcessing(false)
+    }
+  }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -521,7 +545,7 @@ function CitizenryTab({ entities }: { entities: any[] }) {
     setLoading(true)
     try {
       await registerEntityToIntranet(entityId.trim())
-      toast.success('Entity registered for celebrations!')
+      toast.success('Entity registered!')
       setEntityId('')
       window.location.reload()
     } catch (e: any) {
@@ -529,6 +553,41 @@ function CitizenryTab({ entities }: { entities: any[] }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleBulkImport = async () => {
+    if (selectedCandidates.length === 0) return
+    setLoading(true)
+    try {
+      await importCitizens(selectedCandidates)
+      toast.success(`Imported ${selectedCandidates.length} citizens`)
+      setSelectedCandidates([])
+      window.location.reload()
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBulkReject = async () => {
+    if (selectedCandidates.length === 0) return
+    if (!confirm(`Are you sure you want to reject ${selectedCandidates.length} entities? They will be removed from the import list.`)) return
+    setLoading(true)
+    try {
+      await rejectCitizens(selectedCandidates)
+      toast.success(`Rejected ${selectedCandidates.length} entities`)
+      setSelectedCandidates([])
+      window.location.reload()
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleCandidate = (id: string) => {
+    setSelectedCandidates(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
   return (
@@ -540,67 +599,8 @@ function CitizenryTab({ entities }: { entities: any[] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-blue-600 rounded-[2rem] p-8 text-white shadow-xl shadow-blue-600/20">
-           <div className="space-y-4">
-              <h3 className="text-xl font-black uppercase tracking-tight">Register New Entity</h3>
-              <p className="text-blue-100 text-xs font-medium">Link a staff member from the Entity Registry using their LIS number.</p>
-              <form onSubmit={handleRegister} className="space-y-3">
-                 <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-300" />
-                    <input 
-                      type="text" 
-                      value={entityId}
-                      onChange={(e) => setEntityId(e.target.value)}
-                      placeholder="LIS-ENT-XXXXXXX" 
-                      className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-sm font-bold placeholder:text-blue-300 outline-none focus:bg-white/20 transition-all" 
-                    />
-                 </div>
-                 <button 
-                   type="submit" 
-                   disabled={loading}
-                   className="w-full py-4 bg-white text-blue-600 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-lg disabled:opacity-50"
-                 >
-                   {loading ? 'Processing...' : 'Add Individual'}
-                 </button>
-              </form>
-           </div>
-        </div>
-
-        <div className="bg-white border-2 border-dashed border-slate-200 rounded-[2rem] p-8">
-           <div className="space-y-4 text-slate-600">
-              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Bulk Upload Citizens</h3>
-              <p className="text-xs font-medium">Paste multiple LIS-ENT-XXXXXXX identifiers separated by commas or new lines.</p>
-              <textarea 
-                rows={3}
-                placeholder="LIS-ENT-000001, LIS-ENT-000002..."
-                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono outline-none focus:border-blue-500 transition-all"
-                onBlur={async (e) => {
-                  const ids = e.target.value.split(/[\n,]/).map(s => s.trim()).filter(Boolean)
-                  if (ids.length > 0) {
-                    if (confirm(`Link these ${ids.length} entities to the intranet?`)) {
-                      setLoading(true)
-                      try {
-                        const res = await bulkRegisterEntitiesToIntranet(ids)
-                        toast.success(`Success: ${res.success}, Failed: ${res.failed}`)
-                        window.location.reload()
-                      } catch (err: any) {
-                        toast.error(err.message)
-                      } finally {
-                        setLoading(false)
-                      }
-                    }
-                  }
-                }}
-              />
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400">
-                 <UploadCloud className="w-4 h-4" /> CSV Upload coming soon
-              </div>
-           </div>
-        </div>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden">
+      {/* ── ACTIVE CITIZENS TABLE ────────────────────────────────────────── */}
+      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Active Intranet Citizens ({entities.length})</span>
         </div>
@@ -612,7 +612,7 @@ function CitizenryTab({ entities }: { entities: any[] }) {
                 <th className="px-6 py-4">Entity ID</th>
                 <th className="px-6 py-4">Branch</th>
                 <th className="px-6 py-4">Birth Date</th>
-                <th className="px-6 py-4">Joined Date</th>
+                <th className="px-6 py-4 text-right">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm font-medium">
@@ -631,16 +631,74 @@ function CitizenryTab({ entities }: { entities: any[] }) {
                   </td>
                   <td className="px-6 py-4 text-slate-500">{ent.branch?.name || '---'}</td>
                   <td className="px-6 py-4 text-slate-500">{ent.dateOfBirth ? new Date(ent.dateOfBirth).toLocaleDateString() : 'N/A'}</td>
-                  <td className="px-6 py-4 text-slate-500">{ent.joinedDate ? new Date(ent.joinedDate).toLocaleDateString() : 'N/A'}</td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-3">
+                      <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase">Active Citizen</span>
+                      <button 
+                        onClick={() => setConfirmingRemoval(ent)}
+                        className="p-2 hover:bg-rose-50 text-slate-300 hover:text-rose-600 rounded-lg transition-all"
+                        title="Revoke Intranet Access"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
-              {entities.length === 0 && (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold">No entities registered in intranet citizenry yet.</td></tr>
-              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* ── REVOCATION MODAL ── */}
+      <AnimatePresence>
+        {confirmingRemoval && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { if (!processing) setConfirmingRemoval(null) }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 text-center space-y-6"
+            >
+              <div className="w-20 h-20 rounded-3xl bg-amber-50 flex items-center justify-center text-amber-600 mx-auto shadow-inner border border-amber-100">
+                <AlertCircle size={40} />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">Revoke Access</h3>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                  You are about to remove <span className="text-slate-900 font-bold">{confirmingRemoval.name}</span> from the Intranet Citizenry. 
+                  This will immediately cease all automated celebration broadcasts and intranet engagement features for this entity.
+                </p>
+              </div>
+
+              <div className="pt-4 flex items-center gap-3">
+                <button 
+                  onClick={() => setConfirmingRemoval(null)}
+                  disabled={processing}
+                  className="flex-1 py-4 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleRevoke}
+                  disabled={processing}
+                  className="flex-1 py-4 bg-rose-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-rose-600/20 hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {processing ? 'Revoking...' : <><Trash2 size={14} /> Confirm Revoke</>}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
@@ -1024,5 +1082,272 @@ function FField({ label, name, type = 'text', required, placeholder, options }: 
         <input type={type} name={name} placeholder={placeholder} required={required} className={cls} />
       )}
     </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTENT ARCHIVE TAB
+// ─────────────────────────────────────────────────────────────────────────────
+function ArchiveTab() {
+  const [items, setItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('ALL')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [deleting, setDeleting] = useState(false)
+  
+  // Custom Confirmation State
+  const [confirmingSingle, setConfirmingSingle] = useState<any>(null)
+  const [confirmingBulk, setConfirmingBulk] = useState(false)
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      const data = await getArchiveContent()
+      setItems(data)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filtered = items.filter(i => {
+    const matchSearch = i.title.toLowerCase().includes(search.toLowerCase())
+    if (!matchSearch) return false
+    if (filter === 'ALL') return true
+    if (filter === 'ANNOUNCEMENT' && i.model === 'ANNOUNCEMENT') return true
+    if (filter === 'CELEBRATION' && i.model === 'CELEBRATION') return true
+    if (filter === 'ARTICLE' && i.model === 'ARTICLE') return true
+    if (filter === 'SOP' && i.type === 'SOP') return true
+    if (filter === 'POLICY' && i.type === 'Policy') return true
+    return false
+  })
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const handleBulkDeleteExecute = async () => {
+    setDeleting(true)
+    try {
+      const payloads = selectedIds.map(id => {
+        const item = items.find(x => x.id === id)
+        return { id, model: item.model }
+      })
+
+      const res: any = await deleteIntranetContentBulk(payloads)
+      if (res.success) {
+        toast.success(`${res.results.success.length} items successfully deleted.`)
+        setSelectedIds([])
+        setConfirmingBulk(false)
+        fetchData()
+      }
+    } catch (e: any) {
+      toast.error('Bulk deletion failed')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleDeleteOneExecute = async () => {
+    if (!confirmingSingle) return
+    setDeleting(true)
+    try {
+      const res: any = await deleteIntranetContentBulk([{ id: confirmingSingle.id, model: confirmingSingle.model }])
+      if (res.success) {
+        toast.success(`"${confirmingSingle.title}" successfully deleted.`)
+        setConfirmingSingle(null)
+        fetchData()
+      }
+    } catch (e: any) {
+      toast.error('Deletion failed')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800">Master Content Archive</h2>
+          <p className="text-sm text-slate-500 font-medium mt-1">Centralized management for all institutional published content.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <motion.button 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              onClick={() => setConfirmingBulk(true)}
+              disabled={deleting}
+              className="px-6 py-3 bg-rose-600 text-white text-xs font-black uppercase rounded-2xl shadow-xl shadow-rose-600/20 hover:bg-rose-700 transition-all flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" /> Delete Selected ({selectedIds.length})
+            </motion.button>
+          )}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by title..."
+              className="pl-12 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-600/20 transition-all min-w-[300px]"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Chips */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          { id: 'ALL', label: 'All Content' },
+          { id: 'SOP', label: 'SOPs' },
+          { id: 'POLICY', label: 'Policies' },
+          { id: 'ARTICLE', label: 'Blog Articles' },
+          { id: 'ANNOUNCEMENT', label: 'Announcements' },
+          { id: 'CELEBRATION', label: 'Celebrations' }
+        ].map(f => (
+          <button 
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+              filter === f.id 
+              ? 'bg-slate-900 text-white shadow-lg' 
+              : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-soft">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left whitespace-nowrap">
+            <thead className="bg-slate-50 border-b border-slate-100 text-[10px] uppercase font-black text-slate-400 tracking-widest">
+              <tr>
+                <th className="px-8 py-5 w-10 text-center">
+                  <input 
+                    type="checkbox"
+                    checked={filtered.length > 0 && selectedIds.length === filtered.length}
+                    onChange={(e) => setSelectedIds(e.target.checked ? filtered.map(x => x.id) : [])}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600"
+                  />
+                </th>
+                <th className="px-6 py-5">Content Title</th>
+                <th className="px-6 py-5">Type</th>
+                <th className="px-6 py-5">Author</th>
+                <th className="px-6 py-5">Date</th>
+                <th className="px-8 py-5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50 text-sm font-medium">
+              {loading ? (
+                <tr><td colSpan={6} className="px-8 py-20 text-center text-slate-400"><div className="flex flex-col items-center gap-3"><div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-blue-600 animate-spin" /> Retrieving archive...</div></td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={6} className="px-8 py-20 text-center text-slate-400">No content found matching criteria.</td></tr>
+              ) : (
+                filtered.map(item => (
+                  <tr key={item.id} className={`hover:bg-slate-50/50 transition-colors ${selectedIds.includes(item.id) ? 'bg-blue-50/30' : ''}`}>
+                    <td className="px-8 py-5 text-center">
+                       <input 
+                        type="checkbox"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={() => handleToggleSelect(item.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600"
+                      />
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] uppercase tracking-tighter ${
+                          item.model === 'ANNOUNCEMENT' ? 'bg-amber-100 text-amber-700' : 
+                          item.model === 'CELEBRATION' ? 'bg-emerald-100 text-emerald-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {item.type.charAt(0)}
+                        </div>
+                        <span className="text-slate-900 font-bold max-w-[300px] truncate">{item.title}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="px-3 py-1 bg-slate-100 text-[10px] font-black uppercase text-slate-500 rounded-lg">
+                        {item.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-slate-400">{item.author}</td>
+                    <td className="px-6 py-5 text-slate-400">{format(new Date(item.date), 'MMM dd, yyyy')}</td>
+                    <td className="px-8 py-5 text-right">
+                      <button 
+                        onClick={() => setConfirmingSingle(item)}
+                        disabled={deleting}
+                        className="p-3 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-2xl transition-all shadow-sm"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── PREMIUM CONFIRMATION MODALS ── */}
+      <AnimatePresence>
+        {(confirmingSingle || confirmingBulk) && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { if (!deleting) { setConfirmingSingle(null); setConfirmingBulk(false); } }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 text-center space-y-6"
+            >
+              <div className="w-20 h-20 rounded-3xl bg-rose-50 flex items-center justify-center text-rose-600 mx-auto shadow-inner">
+                <AlertCircle size={40} />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">Irreversible Deletion</h3>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                  {confirmingBulk ? (
+                    <>You are about to permanently delete <span className="text-rose-600 font-bold">{selectedIds.length} items</span>. This operation will purge all associated data and media from the archive.</>
+                  ) : (
+                    <>Are you sure you want to delete this <span className="text-rose-600 font-bold">{confirmingSingle.type}</span>? <br/><span className="text-slate-800 font-black">"{confirmingSingle.title}"</span></>
+                  )}
+                </p>
+              </div>
+
+              <div className="pt-4 flex items-center gap-3">
+                <button 
+                  onClick={() => { setConfirmingSingle(null); setConfirmingBulk(false); }}
+                  disabled={deleting}
+                  className="flex-1 py-4 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all disabled:opacity-50"
+                >
+                  Terminate Action
+                </button>
+                <button 
+                  onClick={confirmingBulk ? handleBulkDeleteExecute : handleDeleteOneExecute}
+                  disabled={deleting}
+                  className="flex-1 py-4 bg-rose-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-rose-600/20 hover:bg-rose-700 transition-all disabled:opacity-50"
+                >
+                  {deleting ? 'Purging...' : 'Confirm Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

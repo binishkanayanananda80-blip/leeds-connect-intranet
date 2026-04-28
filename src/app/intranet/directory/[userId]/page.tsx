@@ -27,11 +27,11 @@ export default async function StaffProfilePage({ params }: { params: Promise<{ u
     }
   })
 
-  if (!profile) redirect('/directory')
+  if (!profile) redirect('/intranet/directory')
 
   // Branch isolation — staff can only see profiles in their own branch
   if (!isAdmin && me?.branchId && profile.branchId !== me.branchId) {
-    redirect('/directory')
+    redirect('/intranet/directory')
   }
 
   const isOwnProfile = session.user.id === userId

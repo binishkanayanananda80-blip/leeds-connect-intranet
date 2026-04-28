@@ -9,7 +9,7 @@ import {
   Wallet, GraduationCap, Clock, ShieldCheck,
   ChevronRight, Database, Megaphone, FileCheck,
   LayoutGrid, Zap, LayoutDashboard, CheckSquare,
-  PartyPopper, FileCheck2
+  PartyPopper, FileCheck2, Heart
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -67,6 +67,7 @@ export function ModuleHubClient({
           { title: 'Announcement Center', desc: 'Broadcast news, system updates, and official notices.', href: '/admin/intranet?tab=announcements&standalone=true', icon: Megaphone, badge: telemetry.announceCount },
           { title: 'Celebration Manager', desc: 'Manage birthdays, anniversaries, and engagement posts.', href: '/admin/intranet?tab=celebrations&standalone=true', icon: PartyPopper, badge: telemetry.celebrationCount },
           { title: 'Intranet Citizenry', desc: 'Manage staff entities registered for intranet engagement.', href: '/admin/intranet?tab=citizenry&standalone=true', icon: Users, badge: telemetry.citizenCount },
+          { title: 'Content Archive', desc: 'Securely manage, archive and delete institutional content.', href: '/admin/intranet?tab=archive&standalone=true', icon: Database },
           { title: 'Global Settings', desc: 'Configure intranet behavior, automation, and rules.', href: '/admin/intranet?tab=settings&standalone=true', icon: Settings },
         ];
       case 'finance':
@@ -77,9 +78,10 @@ export function ModuleHubClient({
         ];
       case 'school':
         return [
-          { title: 'Student Governance', desc: 'Manage learner profiles and records.', href: '#', icon: GraduationCap, badge: telemetry.studentCount },
-          { title: 'Parent Linker', desc: 'Associate students with verified parents.', href: '#', icon: Users, badge: telemetry.parentCount },
-          { title: 'Grade Registry', desc: 'Manage grade levels and sections.', href: '#', icon: Database, badge: telemetry.gradeCount },
+          { title: 'Student Governance', desc: 'Moderate and manage learner citizenry.', href: '/admin/school?tab=pending', icon: GraduationCap, badge: telemetry.pendingStudents },
+          { title: 'Student Registry', desc: 'Secure institutional student profile database.', href: '/admin/school?tab=registry', icon: Users, badge: telemetry.activeStudents },
+          { title: 'Parent Linker', desc: 'Manage parent profiles and guardian associations.', href: '/admin/family?tab=pending', icon: Heart, badge: telemetry.pendingParents },
+          { title: 'Grade Registry', desc: 'Manage institutional grade levels and sections.', href: '#', icon: Database, badge: telemetry.gradeCount },
         ];
       default:
         return [];

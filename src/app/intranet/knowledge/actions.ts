@@ -57,6 +57,11 @@ export async function createArticle(formData: FormData) {
   
   const imageFile = formData.get('image') as File | null
   const pdfFile = formData.get('pdf') as File | null
+  const mainCategory = formData.get('mainCategory') as string | null
+  const subCategory = formData.get('subCategory') as string | null
+  const academicCategory = formData.get('academicCategory') as string | null
+  const visibility = formData.get('visibility') as string || 'ALL'
+  const organizationId = (session.user as any)?.organizationId
 
   // Validation
   if (!title?.trim() || !content?.trim() || !documentType) {
@@ -88,7 +93,7 @@ export async function createArticle(formData: FormData) {
 
   for (let i = 0; i < contentParts.length; i++) {
     const partNum = i + 1
-    const partTitle = contentParts.length > 1 ? `${title} - Part ${partNum}` : title
+    const partTitle = title
     
     const article = await prisma.article.create({
       data: {
@@ -105,6 +110,11 @@ export async function createArticle(formData: FormData) {
         status,
         tags: tags?.trim() || null,
         authorId: session.user.id,
+        organizationId: organizationId || 'default', // Fallback if not in session
+        mainCategory,
+        subCategory,
+        academicCategory,
+        visibility,
         targetCategories: targetCategoryIds.length > 0 ? {
           connect: targetCategoryIds.map(id => ({ id }))
         } : undefined
@@ -127,16 +137,16 @@ export async function createArticle(formData: FormData) {
   if (status === 'APPROVED') {
     await notifyTargetedUsers({
       message: `📚 New ${documentType}: "${title}"`,
-      link: '/knowledge',
+      link: '/intranet/knowledge',
       branchId,
       categoryIds: targetCategoryIds,
       excludeUserId: session.user.id
     })
   }
 
-  revalidatePath('/knowledge')
+  revalidatePath('/intranet/knowledge')
   revalidatePath('/')
-  redirect('/knowledge')
+  redirect('/intranet/knowledge')
 }
 
 export async function updateArticleStatus(id: string, status: 'APPROVED' | 'REJECTED') {
@@ -157,14 +167,14 @@ export async function updateArticleStatus(id: string, status: 'APPROVED' | 'REJE
   if (status === 'APPROVED') {
     await notifyTargetedUsers({
       message: `📚 Document Approved: "${article.title}"`,
-      link: '/knowledge',
+      link: '/intranet/knowledge',
       branchId: article.branchId,
       categoryIds: article.targetCategories.map(c => c.id),
       excludeUserId: session.user.id
     })
   }
 
-  revalidatePath('/knowledge')
+  revalidatePath('/intranet/knowledge')
   revalidatePath('/')
   return { success: true }
 }
@@ -187,7 +197,7 @@ export async function addComment(formData: FormData) {
     }
   })
 
-  revalidatePath('/knowledge')
+  revalidatePath('/intranet/knowledge')
   revalidatePath('/')
 }
 
@@ -244,7 +254,7 @@ export async function updateArticle(formData: FormData) {
 
   await logAdminAction(session.user.id, 'UPDATE', 'ARTICLE', id, `Updated article: ${title}`)
 
-  revalidatePath('/knowledge')
+  revalidatePath('/intranet/knowledge')
   revalidatePath(`/intranet/knowledge/${id}`)
   revalidatePath('/admin/knowledge-manager')
   revalidatePath('/')

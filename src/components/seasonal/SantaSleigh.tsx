@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 
 export function SantaSleigh() {
   return (
-    <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden" suppressHydrationWarning>
       <motion.div
         initial={{ x: '-20vw', y: '10vh', opacity: 0 }}
         animate={{ 

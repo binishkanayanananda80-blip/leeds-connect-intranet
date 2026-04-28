@@ -26,17 +26,21 @@ export async function NavServer({ children }: { children?: React.ReactNode }) {
     let userName = session.user.name || ''
     let userRole = (session.user as any)?.roleName || ''
     let userImage = session.user.image || ''
+    let activeModules = 'intranet'
+    let permissionRank: number | null = null
 
     try {
       const dbUser = await prisma.user.findUnique({ 
         where: { id: session.user.id },
-        include: { role: true }
+        include: { role: { include: { permissionLevel: true } } }
       })
       
       if (dbUser) {
         userName = dbUser.name || userName
         userRole = dbUser.role?.name || userRole
         userImage = dbUser.image || userImage
+        activeModules = dbUser.activeModules || 'intranet'
+        permissionRank = dbUser.role?.permissionLevel?.rank || null
       }
 
       unreadCount = await prisma.notification.count({
@@ -47,19 +51,21 @@ export async function NavServer({ children }: { children?: React.ReactNode }) {
     }
 
     return (
-      <div className="flex min-h-screen w-full bg-[#f8f9fa] relative">
+      <div className="flex min-h-screen w-full bg-[#f8f9fa] relative" suppressHydrationWarning>
         {/* 
             Persistent Sidebar Hub 
             Uses sticky + h-screen to stay fixed relative to the viewport 
             while the content flows naturally.
         */}
-        <div className="hidden md:flex sticky top-0 h-screen overflow-hidden z-40 p-4 pr-0 gap-4">
+        <div className="hidden md:flex sticky top-0 h-screen overflow-hidden z-40 p-4 pr-0 gap-4" suppressHydrationWarning>
 
 
           <NavigationShell 
             unreadCount={unreadCount} 
             userName={userName} 
             userRole={userRole} 
+            activeModules={activeModules}
+            permissionRank={permissionRank}
           />
         </div>
         
@@ -68,7 +74,7 @@ export async function NavServer({ children }: { children?: React.ReactNode }) {
             Natural scrolling enabled by removing 'overflow-hidden' and 'h-screen'
             from the parent containers.
         */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-screen relative">
+        <div className="flex-1 flex flex-col min-w-0 min-h-screen relative" suppressHydrationWarning>
           <div className="sticky top-0 z-30">
             <TopNav 
               unreadCount={unreadCount} 

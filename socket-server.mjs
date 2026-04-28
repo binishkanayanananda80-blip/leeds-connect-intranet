@@ -48,6 +48,11 @@ io.on('connection', (socket) => {
     io.to(data.groupId).emit('message-deleted', data.messageId);
   });
 
+  socket.on('update-message', (data) => {
+    // data: { groupId, message }
+    io.to(data.groupId).emit('message-updated', data.message);
+  });
+
   socket.on('disconnect', () => {
     for (const [userId, socketId] of onlineUsers.entries()) {
       if (socketId === socket.id) {

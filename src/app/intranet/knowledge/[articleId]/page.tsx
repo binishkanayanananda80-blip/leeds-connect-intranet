@@ -19,7 +19,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
     include: { author: { include: { branch: true } } }
   })
 
-  if (!article || article.status !== 'APPROVED') redirect('/knowledge')
+  if (!article || article.status !== 'APPROVED') redirect('/intranet/knowledge')
 
   // Category access check for non-admins (Governance)
   if (!isAdmin) {
@@ -29,7 +29,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
       const userType = isAcademic ? 'ACADEMIC' : 'OPERATIONS'
       
       if (v !== userType) {
-        redirect('/knowledge')
+        redirect('/intranet/knowledge')
       }
     }
   }
@@ -41,7 +41,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <header className="flex items-center gap-4">
-        <Link href="/knowledge" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/intranet/knowledge" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" /> Knowledge Hub
         </Link>
       </header>
@@ -75,8 +75,17 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
 
         {/* Article body */}
         <div className="p-8">
-          <div className="prose prose-sm max-w-none text-foreground leading-relaxed whitespace-pre-wrap">
-            {article.content}
+          <div className="prose prose-sm max-w-none text-foreground">
+            {(() => {
+              const normalized = article.content.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+              const paragraphs = normalized.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+              const finalParagraphs = paragraphs.length > 1
+                ? paragraphs
+                : normalized.split(/\n/).map(p => p.trim()).filter(Boolean)
+              return finalParagraphs.map((para, i) => (
+                <p key={i} className="text-justify leading-relaxed mb-4 last:mb-0">{para}</p>
+              ))
+            })()}
           </div>
 
           {/* Tags */}
@@ -94,7 +103,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
       </article>
 
       <div className="text-center">
-        <Link href="/knowledge" className="text-sm text-primary hover:underline">
+        <Link href="/intranet/knowledge" className="text-sm text-primary hover:underline">
           ← Back to Knowledge Hub
         </Link>
       </div>

@@ -74,11 +74,18 @@ export default async function AnnouncementsPage() {
     }
   })
 
+  // Fetch Categories for the "Post" modal
+  const categories = await prisma.employeeCategory.findMany({
+    orderBy: { name: 'asc' }
+  })
+
   return (
     <AnnouncementsClient 
       announcements={announcements} 
       currentUserId={currentUserId}
       userBranchName={me?.branch?.name}
+      isAdmin={isAdmin}
+      categories={categories}
     />
   )
 }

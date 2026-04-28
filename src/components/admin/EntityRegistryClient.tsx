@@ -10,7 +10,8 @@ import {
   CheckCircle2, Clock, XCircle, Link2, Filter,
   DownloadCloud, Upload, RefreshCw, GraduationCap,
   ShoppingCart, Baby, ChevronDown, Check, ArrowRight,
-  BookUser, Globe, MapPin, Calendar, Save, Trash2
+  BookUser, Globe, MapPin, Calendar, Save, Trash2,
+  ShieldCheck
 } from 'lucide-react'
 import { UserAvatar } from '@/components/ui/UserAvatar'
 import { AvatarUploader } from '@/components/ui/AvatarUploader'
@@ -115,7 +116,9 @@ export function EntityRegistryClient({ entities, roles, branches, categories, su
   const [viewingEntity, setViewingEntity] = useState<Entity | null>(null)
   const [duplicates, setDuplicates] = useState<any[]>([])
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null)
+  const [confirmingTrash, setConfirmingTrash] = useState<Entity | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [isTrashing, setIsTrashing] = useState(false)
   const [exporting, setExporting] = useState(false)
 
   const handleExport = async () => {
@@ -182,12 +185,22 @@ export function EntityRegistryClient({ entities, roles, branches, categories, su
   }
 
   const handleMoveToTrash = async (e: Entity) => {
-    if (!confirm(`Are you sure you want to move ${e.name} to the Trash Bin?`)) return
+    setConfirmingTrash(e)
+  }
+
+  const executeTrashAction = async () => {
+    if (!confirmingTrash) return
+    setIsTrashing(true)
     try {
-      await moveToTrash(e.id)
+      await moveToTrash(confirmingTrash.id)
       router.refresh()
-      toast.success(`Entity moved to Trash Bin`)
-    } catch (err: any) { toast.error(err.message) }
+      toast.success(`${confirmingTrash.name} moved to Trash Bin`)
+      setConfirmingTrash(null)
+    } catch (err: any) { 
+      toast.error(err.message) 
+    } finally {
+      setIsTrashing(false)
+    }
   }
 
   const handleFlagDuplicate = async (e: Entity) => {
@@ -281,10 +294,10 @@ export function EntityRegistryClient({ entities, roles, branches, categories, su
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100">
-                {['Profile / Name', 'Entity ID', 'Identification', 'Roles', 'Branch', 'Contact', 'Status', 'Module Profiles'].map(h => (
-                  <th key={h} className="px-5 py-4 text-[10px] font-black text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                {['Profile / Name', 'Entity ID', 'Identification', 'Roles', 'Branch', 'Contact', 'Status', 'Module Profiles'].map((h, idx) => (
+                  <th key={h} className={`${idx === 0 ? 'pl-10' : 'px-5'} py-4 text-[10px] font-black text-slate-500 uppercase tracking-wider whitespace-nowrap`}>{h}</th>
                 ))}
-                <th className="px-5 py-4 text-[10px] font-black text-slate-500 uppercase tracking-wider whitespace-nowrap sticky right-0 z-20 text-right">
+                <th className="pl-5 pr-10 py-4 text-[10px] font-black text-slate-500 uppercase tracking-wider whitespace-nowrap sticky right-0 z-20 text-right">
                   <span className="bg-slate-50/60 backdrop-blur-md px-3 py-1.5 rounded-[10px]">Actions</span>
                 </th>
               </tr>
@@ -328,7 +341,7 @@ export function EntityRegistryClient({ entities, roles, branches, categories, su
             myRole={myRole}
             onClose={() => { setShowAddModal(false); setEditingEntity(null) }}
             onSuccess={() => { setShowAddModal(false); setEditingEntity(null); router.refresh() }}
-            onCreated={(entityId) => { setShowAddModal(false); setEditingEntity(null); router.refresh(); toast.success(`Entity created: ${entityId}`) }}
+            onCreated={(entityId) => { setShowAddModal(false); setEditingEntity(null); router.refresh(); toast.success(`Entity successfully created: ${entityId}`) }}
           />
         )}
       </AnimatePresence>
@@ -341,6 +354,58 @@ export function EntityRegistryClient({ entities, roles, branches, categories, su
             onClose={() => setViewingEntity(null)}
             onEdit={() => { setEditingEntity(viewingEntity); setViewingEntity(null); setShowAddModal(true) }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* ── TRASH CONFIRMATION MODAL ── */}
+      <AnimatePresence>
+        {confirmingTrash && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { if (!isTrashing) setConfirmingTrash(null) }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 text-center space-y-6 overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 via-rose-500 to-amber-400 animate-gradient-x" />
+              
+              <div className="w-20 h-20 rounded-3xl bg-rose-50 flex items-center justify-center text-rose-600 mx-auto shadow-inner border border-rose-100">
+                <Trash2 size={40} />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">Move to Trash?</h3>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                  Do you want to move <span className="text-slate-900 font-bold">{confirmingTrash.name}</span> to the Trash Bin? 
+                  The record will be hidden from the main registry but can be recovered by a Super Admin.
+                </p>
+              </div>
+
+              <div className="pt-4 flex items-center gap-3">
+                <button 
+                  onClick={() => setConfirmingTrash(null)}
+                  disabled={isTrashing}
+                  className="flex-1 py-4 bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-200 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={executeTrashAction}
+                  disabled={isTrashing}
+                  className="flex-1 py-4 bg-rose-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-rose-600/30 hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isTrashing ? 'Moving...' : <><Trash2 size={14} /> Confirm Move</>}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
@@ -360,7 +425,7 @@ function EntityRow({ entity, onView, onEdit, onToggleStatus, onFlagDuplicate, on
   return (
     <tr className="group hover:bg-primary/5 transition-colors duration-150">
       {/* Profile / Name */}
-      <td className="px-5 py-4">
+      <td className="pl-10 pr-5 py-4">
         <div className="flex items-center gap-3">
           <div className="relative">
             <UserAvatar imageUrl={entity.image} firstName={entity.firstName} lastName={entity.lastName} name={entity.name} size="md" />
@@ -464,7 +529,7 @@ function EntityRow({ entity, onView, onEdit, onToggleStatus, onFlagDuplicate, on
       </td>
 
       {/* Actions */}
-      <td className="px-5 py-4 sticky right-0 z-10 p-0 pointer-events-none group-hover:pointer-events-auto">
+      <td className="pl-5 pr-10 py-4 sticky right-0 z-10 p-0 pointer-events-none group-hover:pointer-events-auto">
         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/70 backdrop-blur-md p-1.5 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-white/50 translate-x-2 group-hover:translate-x-0">
           <button onClick={onView} title="View Profile" className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors">
             <Eye className="w-4 h-4" />
@@ -498,7 +563,7 @@ function EntityRow({ entity, onView, onEdit, onToggleStatus, onFlagDuplicate, on
 // ═══════════════════════════════════════════════════════════════════════════════
 // ADD / EDIT ENTITY MODAL — 7-SECTION MULTI-STEP FORM
 // ═══════════════════════════════════════════════════════════════════════════════
-const FORM_SECTIONS = ['Personal', 'Identity', 'Contact', 'Perm. Address', 'Curr. Address', 'Roles', 'Institutional']
+const FORM_SECTIONS = ['Personal', 'Identity', 'Contact', 'Perm. Address', 'Curr. Address', 'Roles', 'Institutional', 'Photo Upload']
 
 function EntityFormModal({ entity, roles, branches, categories, subCategories, departments, myRole, onClose, onSuccess, onCreated }: {
   entity: Entity | null; roles: Role[]; branches: Branch[]
@@ -507,6 +572,7 @@ function EntityFormModal({ entity, roles, branches, categories, subCategories, d
   onClose: () => void; onSuccess: () => void; onCreated: (entityId: string) => void
 }) {
   const [step, setStep] = useState(0)
+  const [createdEntityId, setCreatedEntityId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [checkingDup, setCheckingDup] = useState(false)
   const [dupWarning, setDupWarning] = useState<any[]>([])
@@ -524,8 +590,28 @@ function EntityFormModal({ entity, roles, branches, categories, subCategories, d
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+
+    // ── Pre-submit Validation ──
+    // ── Pre-submit Validation ──
+    // The user strictly requested that submission ONLY happens manually at Step 8 (Index 7).
+    if (step < 7) {
+      setStep(s => s + 1)
+      return
+    }
+
     const form = e.currentTarget
     const fd = new FormData(form)
+
+    // Image Upload Validation (Optional for now to facilitate verification)
+    /*
+    if (!isEdit) {
+      const avatarFile = fd.get('avatarFile') as File | null
+      if (!avatarFile || avatarFile.size === 0) {
+        toast.error('Please upload a professional photograph to complete the identity record.')
+        return
+      }
+    }
+    */
 
     // Add role checkboxes explicitly
     if (roles_.isEmployee) fd.set('isEmployee', 'on')
@@ -556,8 +642,10 @@ function EntityFormModal({ entity, roles, branches, categories, subCategories, d
           toast.success('Entity updated successfully')
           onSuccess()
         } else {
-          toast.success(`Entity created: ${(result as any).entityId}`)
-          onCreated((result as any).entityId)
+          const cid = (result as any).entityId
+          setCreatedEntityId(cid)
+          setStep(FORM_SECTIONS.length - 1) // Move to Success Step
+          onCreated(cid)
         }
       }
     } catch (err: any) {
@@ -585,7 +673,7 @@ function EntityFormModal({ entity, roles, branches, categories, subCategories, d
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-3 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"><X className="w-5 h-5" /></button>
+          <button type="button" onClick={onClose} className="p-3 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"><X className="w-5 h-5" /></button>
         </div>
 
         {/* Step indicators */}
@@ -636,28 +724,7 @@ function EntityFormModal({ entity, roles, branches, categories, subCategories, d
             {/* ── SECTION A: Personal ── */}
             <div className={step === 0 ? 'block space-y-5 animate-in fade-in slide-in-from-right-2 duration-200' : 'hidden'}>
               <div className="flex flex-col md:flex-row gap-8">
-                <div className="w-full md:w-[200px] shrink-0 pt-4 flex flex-col items-center border-r border-slate-100 pr-4">
-                  {isEdit ? (
-                    <AvatarUploader
-                      userId={entity!.id}
-                      currentImage={entity?.image}
-                      firstName={entity?.firstName}
-                      lastName={entity?.lastName}
-                      name={entity?.name}
-                      onUploadComplete={(url) => { toast.success('Photo updated') }}
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center gap-4 text-center mt-2">
-                      <div className="w-24 h-24 rounded-[2rem] bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center">
-                        <Camera className="w-6 h-6 text-slate-300" />
-                      </div>
-                      <p className="text-[10px] text-slate-500 font-bold px-2 leading-relaxed uppercase">
-                        Photo upload unlocks after saving the identity record.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
+                {/* Visual spacer on first step if needed, avatar is now strictly Step 8 */}
                 <div className="flex-1 space-y-5">
                   <SectionHeader icon={<Shield className="w-4 h-4" />} title="Basic Personal Details" />
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -772,8 +839,13 @@ function EntityFormModal({ entity, roles, branches, categories, subCategories, d
 
             {/* ── SECTION F: Role Assignment (Moving to 6th place) ── */}
             <div className={step === 5 ? 'block space-y-5 animate-in fade-in slide-in-from-right-2 duration-200' : 'hidden'}>
-              <SectionHeader icon={<Shield className="w-4 h-4" />} title="Role Assignment" />
-              <p className="text-sm text-slate-500">Select all roles that apply to this entity. Multiple roles can be active simultaneously. Selecting a role automatically creates the linked module profile shell.</p>
+              <div className="flex items-center justify-between mb-2">
+                <SectionHeader icon={<Shield className="w-4 h-4" />} title="Role Assignment" />
+                <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-lg text-[10px] font-black text-primary uppercase tracking-widest border border-primary/20">
+                  Universal ERP Role Engine
+                </div>
+              </div>
+              <p className="text-sm text-slate-500 font-medium">Define the core functional roles for this entity. The **Universal Engine** will automatically provision the necessary module profiles based on these selections.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {(Object.keys(ROLE_CONFIG) as RoleKey[]).map(r => {
                   const cfg = ROLE_CONFIG[r]
@@ -818,46 +890,71 @@ function EntityFormModal({ entity, roles, branches, categories, subCategories, d
             </div>
 
             {/* ── SECTION G: Institutional Linking (Moving to 7th place) ── */}
-            <div className={step === 6 ? 'block space-y-5 animate-in fade-in slide-in-from-right-2 duration-200' : 'hidden'}>
-              <SectionHeader icon={<Building className="w-4 h-4" />} title="Institutional Linking" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FField label="Main Branch" name="branchId" type="select" defaultValue={entity?.branchId || ''}
-                  options={[{ value: '', label: 'Network-wide' }, ...branches.map(b => ({ value: b.id, label: b.name }))]} />
-                <FField label="System Role" name="roleId" type="select" defaultValue={entity?.roleId || ''}
-                  options={[{ value: '', label: 'No System Role' }, ...roles.filter(r => myRole.toLowerCase() === 'super admin' || r.name.toLowerCase() !== 'super admin').map(r => ({ value: r.id, label: r.name }))]} />
+            <div className={step === 6 ? 'block space-y-6 animate-in fade-in slide-in-from-right-2 duration-200' : 'hidden'}>
+              <div className="flex items-center justify-between mb-2">
+                <SectionHeader icon={<Building className="w-5 h-5" />} title="Institutional Linking" subtitle="Configure branch and role associations." />
+                <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-500 uppercase">
+                  Linked to {Object.values(roles_).filter(Boolean).length} Module(s)
+                </div>
               </div>
 
-              {/* Role-conditional fields */}
-              {(roles_.isEmployee) && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-primary/5 p-5 rounded-2xl border border-primary/10">
-                  <p className="md:col-span-3 text-[10px] font-black text-primary uppercase tracking-widest">Employee-Specific Fields</p>
-                  <FField label="Department" name="departmentId" type="select" defaultValue={entity?.departmentId || ''}
-                    options={[{ value: '', label: 'Select...' }, ...departments.map(d => ({ value: d.id, label: d.name }))]} />
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-500 uppercase">Employee Category *</label>
-                    <select name="employeeCategoryId" defaultValue={entity?.employeeCategoryId || ''} onChange={e => setSelectedCatId(e.target.value)}
-                      className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-primary/10 outline-none">
-                      <option value="">Select Category...</option>
-                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+              {/* Shared Fields (Common to all roles) */}
+              <div className="bg-white border-2 border-slate-100 rounded-[2rem] p-6 shadow-sm space-y-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Common Associations</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <FField label="Assigned Branch *" name="branchId" type="select" defaultValue={entity?.branchId || ''} required
+                    options={[{ value: '', label: 'Select Branch...' }, { value: 'NETWORK', label: 'Network-wide' }, ...branches.map(b => ({ value: b.id, label: b.name }))]} />
+                  <FField label="System Role Authority" name="roleId" type="select" defaultValue={entity?.roleId || ''}
+                    options={[{ value: '', label: 'Auto-Assign (Based on Rules)' }, ...roles.filter(r => myRole.toLowerCase() === 'super admin' || r.name.toLowerCase() !== 'super admin').map(r => ({ value: r.id, label: r.name }))]} />
+                </div>
+              </div>
+
+              {/* Employee Specific Configuration */}
+              {roles_.isEmployee && (
+                <div className="bg-primary/5 border border-primary/10 rounded-[2rem] p-7 space-y-5 animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-primary">
+                      <Briefcase className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-slate-800">HR & Staff Configuration</p>
+                      <p className="text-[10px] text-slate-500 font-medium">Link this entity to the internal corporate structure.</p>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-500 uppercase">Position</label>
-                    <select name="employeeSubCategoryId" defaultValue={entity?.employeeSubCategoryId || ''} disabled={!selectedCatId}
-                      className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-primary/10 outline-none disabled:opacity-50">
-                      <option value="">Select Position...</option>
-                      {subCategories.filter(s => s.categoryId === selectedCatId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <FField label="Department *" name="departmentId" type="select" defaultValue={entity?.departmentId || ''}
+                      options={[{ value: '', label: 'Select Dept...' }, ...departments.map(d => ({ value: d.id, label: d.name }))]} />
+                    
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Staff Category *</label>
+                      <select name="employeeCategoryId" defaultValue={entity?.employeeCategoryId || ''} required
+                        onChange={e => setSelectedCatId(e.target.value)}
+                        className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-primary/10 transition-all outline-none">
+                        <option value="">Select Category...</option>
+                        {categories.sort((a,b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Position / Sub-Category</label>
+                      <select name="employeeSubCategoryId" defaultValue={entity?.employeeSubCategoryId || ''} disabled={!selectedCatId}
+                        className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-primary/10 transition-all outline-none disabled:opacity-50">
+                        <option value="">Select Position...</option>
+                        {subCategories.filter(s => s.categoryId === selectedCatId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Social/Status context (Common) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
                 <FField label="Entity Source" name="entitySource" type="select" defaultValue={entity?.entitySource || ''}
                   options={['', 'WALK_IN', 'REFERRAL', 'ONLINE', 'SYSTEM', 'BULK_IMPORT']} />
-                <FField label="First Registered Date" name="firstRegisteredDate" type="date"
+                <FField label="Initial Enrollment Date" name="firstRegisteredDate" type="date"
                   defaultValue={entity?.firstRegisteredDate ? new Date(entity.firstRegisteredDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]} />
-                <FField label="Entity Status" name="entityStatus" type="select" defaultValue={entity?.entityStatus || 'ACTIVE'} options={ENTITY_STATUSES} />
+                <FField label="Verification Status" name="entityStatus" type="select" defaultValue={entity?.entityStatus || 'ACTIVE'} options={ENTITY_STATUSES} />
               </div>
 
               {!isEdit && (
@@ -868,6 +965,29 @@ function EntityFormModal({ entity, roles, branches, categories, subCategories, d
                 </div>
               )}
             </div>
+
+            {/* ── SECTION H: Photo Upload (Final Bio-Metric Step) ── */}
+            <div className={step === 7 ? 'block space-y-8 animate-in zoom-in-95 duration-500 py-10 text-center' : 'hidden'}>
+              <div className="flex flex-col items-center gap-6">
+                <div className="w-20 h-20 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <Camera className="w-10 h-10" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-black text-slate-800 tracking-tight">Step 8: Photograph</h3>
+                  <p className="text-slate-500 font-medium tracking-tight">Upload a professional photograph to finalize identity verification.</p>
+                </div>
+
+                <div className="w-full max-w-sm bg-white border-2 border-slate-100 rounded-[3rem] p-8 shadow-sm space-y-6">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Bio-Metric Localization</p>
+                  <div className="flex justify-center">
+                    <LocalAvatarBox currentImage={entity?.image} firstName={entity?.firstName} lastName={entity?.lastName} name={entity?.name} />
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed px-4">
+                    Before generating the Entity Number, verify all 8 steps. Clicking "Create Entity" will generate the ID and submit all data.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Footer navigation */}
@@ -877,16 +997,16 @@ function EntityFormModal({ entity, roles, branches, categories, subCategories, d
               {step === 0 ? 'Cancel' : '← Back'}
             </button>
             <div className="flex items-center gap-3">
-              {step < FORM_SECTIONS.length - 1 ? (
+              {step < 7 ? (
                 <button type="button" onClick={() => setStep(s => s + 1)}
                   className="flex items-center gap-2 px-8 py-3 bg-primary text-white font-bold rounded-2xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-                  Next <ArrowRight className="w-4 h-4" />
+                  Next Step <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
                 <button type="submit" formNoValidate disabled={submitting || checkingDup}
-                  className="flex items-center gap-2 px-10 py-3 bg-primary text-white font-black rounded-2xl hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 disabled:opacity-60 disabled:cursor-not-allowed">
-                  {(submitting || checkingDup) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  {checkingDup ? 'Checking...' : submitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Entity'}
+                  className="flex items-center gap-2 px-10 py-3 bg-emerald-600 text-white font-black rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-600/20 disabled:opacity-60">
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                  {isEdit ? 'Save Final Changes' : 'Create Entity'}
                 </button>
               )}
             </div>
@@ -1215,6 +1335,36 @@ function FField({ label, name, type = 'text', required, defaultValue, placeholde
         <input type={type} name={name} defaultValue={defaultValue} placeholder={placeholder}
           required={required} className={cls} />
       )}
+    </div>
+  )
+}
+
+function LocalAvatarBox({ currentImage, name, firstName, lastName }: { currentImage?: string | null, name?: string | null, firstName?: string | null, lastName?: string | null }) {
+  const [preview, setPreview] = useState<string | null>(currentImage || null)
+  
+  return (
+    <div className="relative group cursor-pointer w-28 h-28 mx-auto">
+      <div className="w-full h-full rounded-3xl overflow-hidden ring-4 ring-primary/20 bg-slate-50 flex items-center justify-center transition-all group-hover:ring-primary/50 shadow-lg">
+        {preview ? (
+          <img src={preview} className="w-full h-full object-cover" alt="Preview"/>
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary to-purple-800 flex items-center justify-center text-white text-3xl font-bold">
+            {firstName && lastName ? `${firstName[0]}${lastName[0]}` : name?.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() || <Camera className="w-8 h-8 opacity-50"/>}
+          </div>
+        )}
+      </div>
+      <div className="absolute inset-0 rounded-3xl bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <Camera className="w-6 h-6 text-white drop-shadow-md mb-1" />
+        <span className="text-[10px] font-black text-white uppercase uppercase">Upload</span>
+      </div>
+      <input type="file" name="avatarFile" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => {
+        const file = e.target.files?.[0]
+        if (file) {
+          const r = new FileReader()
+          r.onload = e => setPreview(e.target?.result as string)
+          r.readAsDataURL(file)
+        }
+      }} />
     </div>
   )
 }

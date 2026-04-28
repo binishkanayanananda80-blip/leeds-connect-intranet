@@ -17,7 +17,9 @@ export default async function ProfilePage() {
       role: true, 
       organization: true,
       department: true,
-      branch: true
+      branch: true,
+      employeeCategory: true,
+      employeeSubCategory: true,
     }
   })
 
@@ -50,7 +52,9 @@ export default async function ProfilePage() {
                 <h1 className="text-4xl font-black tracking-tight text-black">{user.name}</h1>
                 <BadgeCheck size={28} className="text-primary fill-primary/10" />
               </div>
-              <p className="text-lg font-medium text-slate-500">{user.role?.name} • {user.department?.name || 'Institutional Staff'}</p>
+              <p className="text-lg font-medium text-slate-500">
+                {(user as any).designation || (user as any).employeeSubCategory?.name || user.role?.name} • {(user as any).department?.name || 'Institutional Staff'}
+              </p>
             </div>
             
             <div className="pb-4">
@@ -88,7 +92,9 @@ export default async function ProfilePage() {
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                   <Shield size={12} /> Authority Level
                 </p>
-                <p className="text-sm font-bold text-black uppercase tracking-wider">{user.role?.name}</p>
+                <p className="text-sm font-bold text-black uppercase tracking-wider">
+                  {(user as any).designation || (user as any).employeeSubCategory?.name || user.role?.name}
+                </p>
               </div>
 
               <div className="space-y-2">

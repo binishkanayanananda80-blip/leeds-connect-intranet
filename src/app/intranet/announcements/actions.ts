@@ -19,15 +19,22 @@ export async function createAnnouncement(formData: FormData) {
 
   if (!title?.trim() || !content?.trim()) throw new Error('Title and content are required.')
 
+  const org = await prisma.organization.findFirst()
+  if (!org) throw new Error('Organization not found')
+
+  // Filter out empty strings from categoryIds
+  const validCategoryIds = categoryIds.filter(id => id && id.trim() !== '')
+
   const announcement = await prisma.announcement.create({
     data: {
       title: title.trim(),
       content: content.trim(),
       authorId: session.user.id,
+      organizationId: org.id,
       branchId: branchId || null,
       isPinned,
-      targetCategories: categoryIds.length > 0 ? {
-        connect: categoryIds.map(id => ({ id }))
+      targetCategories: validCategoryIds.length > 0 ? {
+        connect: validCategoryIds.map(id => ({ id }))
       } : undefined
     },
   })
@@ -50,7 +57,42 @@ export async function createAnnouncement(formData: FormData) {
     excludeUserId: session.user.id
   })
 
-  revalidatePath('/announcements')
+  revalidatePath('/intranet/announcements')
   revalidatePath('/')
-  redirect('/announcements')
+  redirect('/intranet/announcements')
+}
+
+export async function deleteAnnouncement(id: string) {
+  const session = await auth()
+  const roleName = (session?.user as any)?.roleName
+  const isAdmin = ['Super Admin', 'Corporate Admin', 'IT Admin', 'Network Admin'].includes(roleName)
+
+  if (!isAdmin) throw new Error('Not authorized')
+
+  await prisma.announcement.delete({ where: { id } })
+  
+  await logAdminAction(session.user.id, 'DELETE', 'ANNOUNCEMENT', id, `Deleted announcement`)
+  
+  revalidatePath('/intranet/announcements')
+  revalidatePath('/')
+  return { success: true }
+}
+
+export async function togglePinAnnouncement(id: string, isPinned: boolean) {
+  const session = await auth()
+  const roleName = (session?.user as any)?.roleName
+  const isAdmin = ['Super Admin', 'Corporate Admin', 'IT Admin', 'Network Admin'].includes(roleName)
+
+  if (!isAdmin) throw new Error('Not authorized')
+
+  await prisma.announcement.update({
+    where: { id },
+    data: { isPinned }
+  })
+
+  await logAdminAction(session.user.id, 'UPDATE', 'ANNOUNCEMENT', id, `${isPinned ? 'Pinned' : 'Unpinned'} announcement`)
+
+  revalidatePath('/intranet/announcements')
+  revalidatePath('/')
+  return { success: true }
 }

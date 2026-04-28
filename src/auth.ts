@@ -24,41 +24,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password || !credentials?.employeeNo) return null
+        if (!credentials?.password) return null
+        if (!credentials?.employeeNo) return null
 
         const db = getDb()
         try {
-          const user = await db.user.findUnique({
-            where: { email: credentials.email as string },
-            include: { role: true, organization: true },
+          // Look up by Employee table
+          const employee = await db.employee.findUnique({
+            where: { employeeNumber: credentials.employeeNo as string },
+            include: { user: { include: { role: true, organization: true } } }
           })
 
-          if (!user || !user.password) return null
+          if (!employee || !employee.passwordHash) return null
 
           const passwordsMatch = await bcrypt.compare(
             credentials.password as string,
-            user.password,
+            employee.passwordHash,
           )
 
           if (!passwordsMatch) return null
 
-          // Verify if either the Email OR the Employee Number matches the user record
-          const emailMatch = user.email === credentials.email
-          const empNoMatch = user.staffId === credentials.employeeNo
-
-          if (!emailMatch && !empNoMatch) return null
+          const user = employee.user
+          if (!user) return null
 
           return {
             id: user.id,
             email: user.email,
-            name: user.name,
+            name: `${employee.firstName} ${employee.lastName}`,
             image: user.image,
-            roleId: user.roleId,
+            roleId: employee.roleId,
             roleName: user.role?.name,
             organizationId: user.organizationId,
-            branchId: user.branchId,
-            forcePasswordChange: user.forcePasswordChange,
-            employeeCategoryId: user.employeeCategoryId,
+            branchId: employee.branchId,
+            forcePasswordChange: !employee.passwordChanged,
+            employeeCategoryId: employee.categoryId,
+            employeeNumber: employee.employeeNumber,
           }
         } finally {
           await db.$disconnect()

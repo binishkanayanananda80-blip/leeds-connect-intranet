@@ -22,7 +22,7 @@ export default async function NewArticlePage() {
 
   // Only certain roles can create official knowledge articles
   if (!['Super Admin', 'Corporate Admin', 'IT Admin', 'Network Admin', 'Branch Admin', 'User'].includes(roleName)) {
-    redirect('/knowledge')
+    redirect('/intranet/knowledge')
   }
 
   const [branches, employeeCategories] = await Promise.all([
@@ -38,7 +38,7 @@ export default async function NewArticlePage() {
       <div className="max-w-4xl mx-auto px-6 pt-12 space-y-8">
         
         <header className="space-y-4">
-          <Link href="/knowledge" className="flex items-center gap-2 text-sm font-black uppercase text-primary/50 hover:text-primary transition-colors">
+          <Link href="/intranet/knowledge" className="flex items-center gap-2 text-sm font-black uppercase text-primary/50 hover:text-primary transition-colors">
             <ArrowLeft className="w-4 h-4" /> Back to Archives
           </Link>
           <div className="flex items-center gap-4">
@@ -129,7 +129,7 @@ export default async function NewArticlePage() {
           </div>
 
           <div className="flex items-center justify-end gap-4 pt-4">
-            <Link href="/knowledge" className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors">
+            <Link href="/intranet/knowledge" className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors">
               Cancel Draft
             </Link>
             <button
