@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { writeFile } from 'fs/promises'
-import { join, extname } from 'path'
+import { supabase } from '@/lib/supabase'
+import { extname } from 'path'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
@@ -38,24 +38,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'File too large. Max 5MB.' }, { status: 400 })
     }
 
-    // Write file to /public/uploads/avatars/
+    // Upload to Supabase Storage
     const ext = extname(file.name) || '.jpg'
-    const filename = `${targetUserId}${ext}`
+    const filename = `${targetUserId}-${Date.now()}${ext}`
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    const savePath = join(process.cwd(), 'public', 'uploads', 'avatars', filename)
-    await writeFile(savePath, buffer)
 
-    // Update user record
-    const imageUrl = `/uploads/avatars/${filename}`
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filename, bytes, {
+        contentType: file.type,
+        upsert: true
+      })
+
+    if (uploadError) {
+      console.error('[Supabase Storage Error]', uploadError)
+      return NextResponse.json({ error: 'Storage upload failed' }, { status: 500 })
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filename)
+
+    // Update user record in Prisma
     await prisma.user.update({
       where: { id: targetUserId },
-      data: { image: imageUrl }
+      data: { image: publicUrl }
     })
 
-    return NextResponse.json({ imageUrl })
+    return NextResponse.json({ imageUrl: publicUrl })
   } catch (err) {
     console.error('[AvatarUpload]', err)
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
   }
 }
+
