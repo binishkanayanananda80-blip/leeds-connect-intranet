@@ -339,10 +339,13 @@ function FeaturedKnowledgeCard({ article, userId, onReact, onCommentClick, onVie
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[3.5rem] overflow-hidden shadow-premium border border-gray-50 flex flex-col lg:flex-row min-h-[450px]">
       <div className="lg:w-1/2 relative min-h-[300px] bg-gray-200 overflow-hidden group">
         {isPDF && !article.imageUrl ? (
-          <div className="absolute inset-0 pointer-events-none overflow-hidden bg-white group-hover:scale-105 transition-transform duration-700">
-             <iframe src={`${article.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} className="absolute top-0 left-0 w-[125%] h-[300%] border-0 select-none opacity-90 transform scale-[0.8] origin-top-left" />
+          <div className="absolute inset-0 pointer-events-none overflow-hidden bg-white group-hover:scale-105 transition-transform duration-700 z-0">
+             <iframe 
+               src={`${article.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
+               className="absolute -top-4 left-0 w-[125%] h-[400%] border-0 select-none opacity-90 transform scale-[0.8] origin-top-left pointer-events-none" 
+             />
              {/* Gradient Overlay for the "description in the placeholder" effect */}
-             <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-gray-100/95 via-gray-50/80 to-transparent pointer-events-none" />
+             <div className="absolute inset-0 bg-gradient-to-t from-gray-100/95 via-gray-50/40 to-transparent pointer-events-none z-10" />
              <div className="absolute bottom-10 left-[10%] w-[80%] p-8 bg-white/95 backdrop-blur-md rounded-[2rem] shadow-2xl border border-gray-100">
                 <h4 className="text-2xl font-black uppercase text-gray-900 leading-tight mb-3">{article.title}</h4>
                 <p className="text-sm font-bold text-gray-500 line-clamp-2">{article.content}</p>
@@ -420,10 +423,13 @@ function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onView
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="group bg-white rounded-[3rem] overflow-hidden shadow-soft border border-gray-50 flex flex-col">
       <div className="relative h-56 overflow-hidden bg-gray-200 group-hover:bg-gray-300 transition-colors">
         {isPDF && !article.imageUrl ? (
-          <div className="absolute inset-0 pointer-events-none overflow-hidden bg-white group-hover:scale-105 transition-transform duration-700">
-             <iframe src={`${article.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} className="absolute top-0 left-0 w-[125%] h-[300%] border-0 select-none opacity-80 transform scale-[0.8] origin-top-left" />
-             <div className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-t from-gray-100/95 via-gray-50/40 to-transparent pointer-events-none" />
-             <div className="absolute bottom-4 left-[5%] w-[90%] p-5 bg-white/95 backdrop-blur-md rounded-[1.5rem] shadow-xl border border-gray-100">
+          <div className="absolute inset-0 pointer-events-none overflow-hidden bg-white group-hover:scale-105 transition-transform duration-700 z-0">
+             <iframe 
+               src={`${article.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
+               className="absolute -top-4 left-0 w-[125%] h-[400%] border-0 select-none opacity-80 transform scale-[0.8] origin-top-left pointer-events-none" 
+             />
+             <div className="absolute inset-0 bg-gradient-to-t from-gray-100/95 via-gray-50/20 to-transparent pointer-events-none z-10" />
+             <div className="absolute bottom-4 left-[5%] w-[90%] p-5 bg-white/95 backdrop-blur-md rounded-[1.5rem] shadow-xl border border-gray-100 z-20">
                 <h4 className="text-sm font-black uppercase text-gray-900 leading-tight mb-2 line-clamp-1">{article.title}</h4>
                 <p className="text-[10px] font-bold text-gray-500 line-clamp-2">{article.content}</p>
              </div>
