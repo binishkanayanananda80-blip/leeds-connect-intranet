@@ -1,17 +1,8 @@
 import NextAuth from 'next-auth'
 import { authConfig } from './auth.config'
 import Credentials from 'next-auth/providers/credentials'
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import path from 'path'
-
-function getDb() {
-  const rawPath = process.env.DATABASE_URL?.replace('file:', '') ?? 'prisma/leeds_v2.db'
-  const dbPath = path.isAbsolute(rawPath) ? rawPath : path.join(process.cwd(), rawPath)
-  const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` })
-  return new PrismaClient({ adapter })
-}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -27,10 +18,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!credentials?.password) return null
         if (!credentials?.employeeNo) return null
 
-        const db = getDb()
         try {
           // Look up by Employee table
-          const employee = await db.employee.findUnique({
+          const employee = await prisma.employee.findUnique({
             where: { employeeNumber: credentials.employeeNo as string },
             include: { user: { include: { role: true, organization: true } } }
           })
@@ -60,8 +50,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             employeeCategoryId: employee.categoryId,
             employeeNumber: employee.employeeNumber,
           }
-        } finally {
-          await db.$disconnect()
+        } catch (error) {
+          console.error('[Auth] Authorization error:', error)
+          return null
         }
       },
     }),
