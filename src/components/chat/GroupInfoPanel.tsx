@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { X, UserPlus, LogOut, Trash2, Camera, Info, Image as ImageIcon, FileText, Pin, ChevronRight, Search } from 'lucide-react'
-import { addGroupMember, removeGroupMember, updateGroupInfo, deleteChatGroup } from '@/app/chat/actions'
+import { addGroupMember, removeGroupMember, updateGroupInfo, deleteChatGroup, toggleAdminRole } from '@/app/chat/actions'
 
 interface GroupInfoPanelProps {
   isOpen: boolean
@@ -13,6 +13,8 @@ interface GroupInfoPanelProps {
 }
 
 export function GroupInfoPanel({ isOpen, onClose, group, currentUserId, availableUsers }: GroupInfoPanelProps) {
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editedName, setEditedName] = useState(group.name || '')
   const [isEditingDesc, setIsEditingDesc] = useState(false)
   const [editedDesc, setEditedDesc] = useState(group.description || '')
   const [isUploadingIcon, setIsUploadingIcon] = useState(false)
@@ -22,8 +24,11 @@ export function GroupInfoPanel({ isOpen, onClose, group, currentUserId, availabl
   if (!isOpen) return null
 
   const isGroup = group.type === 'GROUP'
-  const isAdmin = group.adminId === currentUserId
   const members = group.members || []
+  const myMembership = members.find((m: any) => m.userId === currentUserId)
+  
+  const isOwner = myMembership?.role === 'OWNER' || group.adminId === currentUserId // Fallback to adminId if role is missing
+  const isAdmin = isOwner || myMembership?.role === 'ADMIN'
 
   const filteredUsers = availableUsers.filter(u => 
     !members.some((m: any) => m.userId === u.id) &&
@@ -78,6 +83,12 @@ export function GroupInfoPanel({ isOpen, onClose, group, currentUserId, availabl
     setIsEditingDesc(false)
   }
 
+  const handleSaveName = async () => {
+    if (!editedName.trim()) return
+    await updateGroupInfo(group.id, { name: editedName })
+    setIsEditingName(false)
+  }
+
   return (
     <div className={`absolute inset-y-0 right-0 w-full md:w-80 lg:w-96 bg-white z-[150] shadow-2xl flex flex-col transition-transform duration-300 transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
       {/* Header */}
@@ -111,7 +122,24 @@ export function GroupInfoPanel({ isOpen, onClose, group, currentUserId, availabl
               </label>
             )}
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-1">{group.name}</h2>
+          <div className="flex items-center gap-2 mb-1">
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <input 
+                  autoFocus
+                  className="text-xl font-bold text-gray-900 border-b-2 border-primary outline-none bg-transparent text-center"
+                  value={editedName}
+                  onChange={e => setEditedName(e.target.value)}
+                />
+                <button onClick={handleSaveName} className="text-xs text-[#C9A227] font-black uppercase">OK</button>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold text-gray-900">{group.name}</h2>
+                {isAdmin && <button onClick={() => setIsEditingName(true)} className="p-1 hover:bg-gray-100 rounded-full"><FileText size={14} className="text-gray-400" /></button>}
+              </>
+            )}
+          </div>
           <p className="text-sm text-gray-500 font-medium">Group · {members.length} participants</p>
         </div>
 
@@ -185,13 +213,33 @@ export function GroupInfoPanel({ isOpen, onClose, group, currentUserId, availabl
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-gray-900 truncate">{m.user?.name}</p>
-                    {m.userId === group.adminId && (
+                    {m.role === 'OWNER' && (
+                      <span className="text-[10px] bg-gold-leeds/10 text-gold-leeds px-1.5 py-0.5 rounded-md font-bold uppercase">Owner</span>
+                    )}
+                    {m.role === 'ADMIN' && (
                       <span className="text-[10px] bg-[#5A2D82]/10 text-[#5A2D82] px-1.5 py-0.5 rounded-md font-bold uppercase">Admin</span>
                     )}
                   </div>
                   <p className="text-xs text-gray-400 truncate">{m.user?.designation || 'Staff Member'}</p>
                 </div>
-                {isAdmin && m.userId !== currentUserId && (
+                {isOwner && m.userId !== currentUserId && (
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => toggleAdminRole(group.id, m.userId)}
+                      title={m.role === 'ADMIN' ? 'Dismiss as admin' : 'Make group admin'}
+                      className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${m.role === 'ADMIN' ? 'text-[#5A2D82]' : 'text-gray-400'}`}
+                    >
+                      <Pin size={14} className={m.role === 'ADMIN' ? 'fill-current' : ''} />
+                    </button>
+                    <button 
+                      onClick={() => handleRemoveMember(m.userId)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-full"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                )}
+                {!isOwner && isAdmin && m.userId !== currentUserId && m.role === 'MEMBER' && (
                   <button 
                     onClick={() => handleRemoveMember(m.userId)}
                     className="p-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 rounded-full"
@@ -213,7 +261,7 @@ export function GroupInfoPanel({ isOpen, onClose, group, currentUserId, availabl
             <LogOut size={20} />
             Exit Group
           </button>
-          {isAdmin && (
+          {isOwner && (
             <button 
               onClick={handleDeleteGroup}
               className="w-full flex items-center gap-4 text-red-500 font-bold text-sm p-4 hover:bg-red-50 rounded-2xl transition-colors"

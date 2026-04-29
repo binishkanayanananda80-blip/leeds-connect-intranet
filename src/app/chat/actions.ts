@@ -43,7 +43,10 @@ export async function createGroupChat(formData: FormData) {
       categoryId: categoryId || null,
       adminId: session.user.id,
       members: {
-        create: memberIds.map(id => ({ userId: id }))
+        create: memberIds.map(id => ({ 
+          userId: id,
+          role: id === session.user.id ? 'OWNER' : 'MEMBER'
+        }))
       }
     }
   })
@@ -322,6 +325,9 @@ export async function updateGroupInfo(groupId: string, data: { name?: string, de
     where: { userId_groupId: { userId: session.user.id, groupId } }
   })
   if (!membership) throw new Error("Not a member")
+  
+  const isAuthorized = membership.role === 'OWNER' || membership.role === 'ADMIN'
+  if (!isAuthorized) throw new Error("Only group owners and admins can update group info")
 
   await prisma.chatGroup.update({ where: { id: groupId }, data })
 
@@ -340,13 +346,12 @@ export async function deleteChatGroup(groupId: string) {
 
   if (!group) throw new Error("Chat not found")
 
-  const roleName = (session.user as any)?.roleName
-  const isAdminRole = ['Super Admin', 'Corporate Admin', 'IT Admin', 'Network Admin', 'Branch Admin'].includes(roleName)
-  const isGroupAdmin = group.adminId === session.user.id
+  const myMembership = group.members.find(m => m.userId === session.user.id)
+  const isOwner = myMembership?.role === 'OWNER'
   const isDirect = group.type === 'DIRECT'
 
-  if (!isDirect && !isGroupAdmin && !isAdminRole) {
-    throw new Error("Only group admins or platform admins can delete this chat")
+  if (!isDirect && !isOwner && !isAdminRole) {
+    throw new Error("Only the group owner or platform admins can delete this chat")
   }
 
   await prisma.chatGroup.delete({ where: { id: groupId } })
@@ -466,5 +471,35 @@ export async function toggleMuteChat(groupId: string) {
   await prisma.$executeRaw`UPDATE GroupMember SET isMuted = ${newVal} WHERE id = ${membership.id}`
 
   revalidatePath('/chat')
+  return { success: true }
+}
+
+export async function toggleAdminRole(groupId: string, userId: string) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Unauthorized")
+
+  const group = await prisma.chatGroup.findUnique({
+    where: { id: groupId },
+    include: { members: true }
+  })
+  if (!group) throw new Error("Group not found")
+
+  const myMembership = group.members.find(m => m.userId === session.user.id)
+  if (myMembership?.role !== 'OWNER' && (session.user as any)?.roleName !== 'Super Admin') {
+    throw new Error("Only the group owner can manage admin roles")
+  }
+
+  const targetMembership = group.members.find(m => m.userId === userId)
+  if (!targetMembership) throw new Error("User is not a member of this group")
+  if (targetMembership.role === 'OWNER') throw new Error("Cannot change owner role")
+
+  const newRole = targetMembership.role === 'ADMIN' ? 'MEMBER' : 'ADMIN'
+  
+  await prisma.groupMember.update({
+    where: { userId_groupId: { userId, groupId } },
+    data: { role: newRole }
+  })
+
+  revalidatePath(`/chat/${groupId}`)
   return { success: true }
 }

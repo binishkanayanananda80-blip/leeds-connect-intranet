@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
 }
 
 model Organization {
@@ -462,6 +462,7 @@ model GroupMember {
   id         String    @id @default(cuid())
   userId     String
   groupId    String
+  role       String    @default("MEMBER") // OWNER, ADMIN, MEMBER
   joinedAt   DateTime  @default(now())
   lastReadAt DateTime  @default(now())
   // ── Per-user settings ──
@@ -804,7 +805,9 @@ model PasswordResetToken {
   employeeNumber String
   otp            String
   expiresAt      DateTime
+  used           Boolean  @default(false)
   createdAt      DateTime @default(now())
 
   @@unique([employeeNumber, otp])
 }
+

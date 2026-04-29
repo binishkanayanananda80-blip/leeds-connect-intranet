@@ -32,21 +32,17 @@ export async function authenticate(
 export async function requestPasswordReset(employeeNo: string) {
   try {
     const employee = await prisma.employee.findUnique({
-      where: { employeeNumber: employeeNo }
+      where: { employeeNumber: employeeNo },
+      include: { user: true }
     })
 
     if (!employee) {
       return { error: 'Employee not found.' }
     }
 
-    const mobileNumber = employee.mobileNumber
-    if (!mobileNumber) {
-      return { error: 'No mobile number associated with this account. Please contact HR.' }
-    }
-
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 mins
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes validity
 
     // Clear existing tokens
     await prisma.passwordResetToken.deleteMany({
@@ -61,23 +57,45 @@ export async function requestPasswordReset(employeeNo: string) {
       }
     })
 
-    // ── SMS INTEGRATION ──
-    const message = `Your Leeds Connect verification code is: ${otp}. Valid for 15 minutes.`
-    const smsResult = await sendSms(mobileNumber, message)
-    
-    if (!smsResult.success && !smsResult.simulated) {
-      // If a real gateway fails, we let the user know
-      return { error: 'Failed to send SMS. Please try again later.' }
+    // ── FIND ADMINS TO NOTIFY ──
+    const admins = await prisma.user.findMany({
+      where: {
+        role: {
+          systemRole: {
+            in: ['SUPER_ADMIN', 'MODULE_ADMIN', 'MODERATOR']
+          }
+        },
+        isActive: true
+      }
+    })
+
+    // ── CREATE NOTIFICATIONS FOR ADMINS ──
+    const employeeName = `${employee.firstName} ${employee.lastName}`
+    await Promise.all(admins.map(admin => 
+      prisma.notification.create({
+        data: {
+          userId: admin.id,
+          message: `🔐 Password Reset: OTP for ${employeeName} (${employeeNo}) is ${otp}. Valid for 5 mins.`,
+          link: '/admin/employee'
+        }
+      })
+    ))
+
+    /* ── SMS INTEGRATION (DISABLED PER USER REQUEST) ──
+    const mobileNumber = employee.mobileNumber
+    if (mobileNumber) {
+      const message = `Your Leeds Connect verification code is: ${otp}. Valid for 5 minutes.`
+      await sendSms(mobileNumber, message)
     }
+    */
     
-    // We return success without the OTP to keep it secure
     return { 
       success: true, 
-      message: `A verification code has been sent to your registered mobile: ${mobileNumber.slice(0, 3)}****${mobileNumber.slice(-2)}`
+      message: `A reset request has been sent. Please contact your Supervisor, Moderator, or System Administrator to receive your 6-digit verification code.`
     } 
   } catch (err) {
     console.error(err)
-    return { error: 'Failed to request reset.' }
+    return { error: 'Failed to request reset. Please try again or contact IT.' }
   }
 }
 

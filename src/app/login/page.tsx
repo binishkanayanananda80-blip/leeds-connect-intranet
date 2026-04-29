@@ -252,7 +252,7 @@ export default function LoginPage() {
                 <button onClick={() => setStage('forgot-request')} className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors text-xs font-bold uppercase tracking-widest"><ArrowLeft size={16} /> Change ID</button>
                 <div className="space-y-2">
                   <h2 className="text-4xl font-black text-black tracking-tight">Verify OTP</h2>
-                  <p className="text-gray-500 font-medium">A system-generated code has been sent to your registered contact.</p>
+                  <p className="text-gray-500 font-medium">A secure code has been sent to the Administration. Please contact a Supervisor or Admin to receive your code.</p>
                 </div>
                 <form onSubmit={handleVerifyOtp} className="space-y-6">
                   <div className="space-y-2">

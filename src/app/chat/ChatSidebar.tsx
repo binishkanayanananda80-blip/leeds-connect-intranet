@@ -44,7 +44,7 @@ function ConvAvatar({ group, currentUserId, size = 'md' }: any) {
 }
 
 // ── CONVERSATION CONTEXT MENU ──
-function ConvMenu({ groupId, isPinned, isArchived, isMuted, onClose }: any) {
+function ConvMenu({ groupId, isPinned, isArchived, isMuted, isOwner, onClose }: any) {
   const handleAction = async (label: string) => {
     switch (label) {
       case 'Archive chat':
@@ -72,6 +72,11 @@ function ConvMenu({ groupId, isPinned, isArchived, isMuted, onClose }: any) {
           await removeGroupMember(groupId, 'current')
         }
         break
+      case 'Delete group':
+        if (confirm('Permanently delete this group for everyone?')) {
+          await deleteChatGroup(groupId)
+        }
+        break
     }
     onClose()
   }
@@ -82,8 +87,8 @@ function ConvMenu({ groupId, isPinned, isArchived, isMuted, onClose }: any) {
     { icon: Pin, label: isPinned ? 'Unpin chat' : 'Pin chat' },
     { icon: Check, label: 'Mark as read' },
     { icon: Trash2, label: 'Clear chat', danger: true },
-    { icon: LogOut, label: 'Exit group', danger: true },
-  ]
+    isOwner ? { icon: Trash2, label: 'Delete group', danger: true } : { icon: LogOut, label: 'Exit group', danger: true },
+  ].filter(Boolean) as any[]
   return (
     <div className="absolute right-0 top-0 z-50 w-52 bg-white rounded-xl shadow-2xl border border-gray-100 py-1 overflow-hidden" onClick={e => e.stopPropagation()}>
       {items.map(item => (
@@ -281,7 +286,8 @@ export function ChatSidebar({ groups, availableUsers, currentUserId, currentUser
       y: e.clientY, 
       isPinned: g.isPinned, 
       isArchived: g.isArchived, 
-      isMuted: g.isMuted 
+      isMuted: g.isMuted,
+      isOwner: g.members?.find((m: any) => m.userId === currentUserId)?.role === 'OWNER' || g.adminId === currentUserId
     })
   }
 
@@ -297,6 +303,7 @@ export function ChatSidebar({ groups, availableUsers, currentUserId, currentUser
               isPinned={contextMenu.isPinned}
               isArchived={contextMenu.isArchived}
               isMuted={contextMenu.isMuted}
+              isOwner={contextMenu.isOwner}
               onClose={() => setContextMenu(null)} 
             />
           </div>
