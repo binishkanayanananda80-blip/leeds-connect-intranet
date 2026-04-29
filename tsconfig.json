@@ -37,6 +37,6 @@
                     "**/*.mts"
                 ],
     "exclude":  [
-                    "prisma/seed-content.ts"
+                    "prisma/*.ts"
                 ]
 }
