@@ -39,5 +39,5 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath('/')
   revalidatePath('/directory')
-  redirect('/settings')
+  redirect('/intranet')
 }

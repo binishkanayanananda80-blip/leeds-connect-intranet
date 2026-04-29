@@ -24,7 +24,6 @@ export default async function EditProfilePage() {
     <div className="p-6 max-w-xl mx-auto space-y-6">
       {/* Header */}
       <header className="flex items-center gap-4">
-        <Link href="/settings" className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Settings</Link>
         <div>
           <h2 className="text-2xl font-bold text-foreground">Edit Profile</h2>
           <p className="text-muted-foreground text-sm mt-0.5">Update your personal information.</p>
@@ -122,7 +121,7 @@ export default async function EditProfilePage() {
         </p>
 
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Link href="/settings" className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-xl transition-colors">
+          <Link href="/intranet" className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-xl transition-colors">
             Cancel
           </Link>
           <button type="submit"
