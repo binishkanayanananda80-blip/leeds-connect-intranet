@@ -244,7 +244,7 @@ model Grade {
 
 model Role {
   id                String             @id @default(cuid())
-  name              String
+  name              String @unique
   permissions       String
   systemRole        String? // SUPER_ADMIN | COMPANY_ADMIN | CORPORATE_ADMIN | NETWORK_ADMIN | MODULE_ADMIN | MODERATOR | END_USER
   isSystem          Boolean            @default(false)
