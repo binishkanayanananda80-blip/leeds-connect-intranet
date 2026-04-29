@@ -11,7 +11,12 @@ export default async function EditProfilePage() {
   if (!session?.user?.id) redirect('/login')
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: { role: true, branch: true },
+    include: { 
+      role: true, 
+      branch: true, 
+      department: true, 
+      employeeCategory: true 
+    },
   })
   if (!user) redirect('/')
 
@@ -76,23 +81,45 @@ export default async function EditProfilePage() {
             id="name" name="name" type="text" defaultValue={user.name ?? ''}
             className="w-full px-4 py-3 border border-input rounded-xl bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
           />
-          <p className="text-xs text-muted-foreground">This is the name shown across the platform. Note: All changes require Admin approval.</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="bio" className="text-sm font-semibold text-foreground">Bio / About Me</label>
+          <textarea
+            id="bio" name="bio" rows={3} defaultValue={user.bio ?? ''}
+            className="w-full px-4 py-3 border border-input rounded-xl bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+            placeholder="Tell us about yourself..."
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="qualifications" className="text-sm font-semibold text-foreground">Qualifications</label>
+          <textarea
+            id="qualifications" name="qualifications" rows={2} defaultValue={user.qualifications ?? ''}
+            className="w-full px-4 py-3 border border-input rounded-xl bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+            placeholder="Degrees, certifications, etc."
+          />
+          <p className="text-xs text-muted-foreground">Note: All changes require Admin approval.</p>
         </div>
 
         {/* Read-only fields */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-border">
           {[
-            { label: 'Role', value: user.role?.name ?? '—' },
+            { label: 'System Role', value: user.role?.name ?? '—' },
+            { label: 'Designation', value: user.designation ?? '—' },
+            { label: 'Department', value: (user as any).department?.name ?? '—' },
+            { label: 'Category', value: (user as any).employeeCategory?.name ?? '—' },
             { label: 'Branch', value: user.branch?.name ?? 'Network-wide' },
-            { label: 'Category', value: (user as any).employeeCategoryId ?? '—' },
           ].map((f) => (
             <div key={f.label}>
-              <p className="text-xs text-muted-foreground mb-1">{f.label}</p>
-              <p className="text-sm font-medium text-muted-foreground bg-muted px-3 py-2 rounded-xl">{f.value}</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 tracking-wider">{f.label}</p>
+              <p className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-2.5 rounded-xl border border-gray-100">{f.value}</p>
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">Role, branch, and category can only be changed directly by an Admin.</p>
+        <p className="text-[10px] font-bold text-muted-foreground bg-amber-50 border border-amber-100 p-3 rounded-xl">
+          ⚠️ System role, designation, department, and category are managed by Administration and cannot be edited by users.
+        </p>
 
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link href="/settings" className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-xl transition-colors">

@@ -15,6 +15,8 @@ export async function updateProfile(formData: FormData) {
   const email = (formData.get('email') as string)?.trim()
   const mobileNumber = (formData.get('mobileNumber') as string)?.trim()
   const address = (formData.get('address') as string)?.trim()
+  const bio = (formData.get('bio') as string)?.trim()
+  const qualifications = (formData.get('qualifications') as string)?.trim()
 
   const requestedChanges = {
     ...(firstName && { firstName }),
@@ -23,6 +25,8 @@ export async function updateProfile(formData: FormData) {
     ...(email && { email }),
     ...(mobileNumber && { mobileNumber }),
     ...(address && { address }),
+    ...(bio && { bio }),
+    ...(qualifications && { qualifications }),
   }
 
   await prisma.profileUpdateRequest.create({
