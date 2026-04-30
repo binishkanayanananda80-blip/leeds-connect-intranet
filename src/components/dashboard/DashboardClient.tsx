@@ -576,20 +576,17 @@ export function DashboardClient({
       </div>
 
       {/* FOOTER */}
-      <footer className="mt-24 pb-12 flex flex-col items-center text-center gap-8 border-t border-gray-100 pt-16">
-        <div className="flex items-center gap-4">
-           <div className="w-16 h-px bg-gray-100" />
-           <div className="flex items-center gap-4 font-black text-sm uppercase tracking-[0.4em]">
-             <Image src="/logo.png" alt="Logo" width={32} height={32} />
-             <span className="text-primary">LEEDS</span><span className="text-gold-leeds">CONNECT</span><span className="text-black">®</span>
-           </div>
-           <div className="w-16 h-px bg-gray-100" />
+      <footer className="mt-60 pb-12 flex flex-col items-center text-center gap-4 border-t border-gray-100/50 pt-20">
+        <div className="flex items-center gap-3 font-black text-[10px] uppercase tracking-[0.3em] mb-2">
+          <Image src="/logo.png" alt="Logo" width={24} height={24} className="opacity-80 grayscale hover:grayscale-0 transition-all" />
+          <span className="text-primary">LEEDS</span><span className="text-gold-leeds">CONNECT</span><span className="text-black">®</span>
         </div>
-        <div className="space-y-1">
-          <p className="text-[11px] font-black text-primary-900 uppercase tracking-widest leading-relaxed">
+        <div className="space-y-2">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
             All rights reserved | IT Department Leeds International School
           </p>
-          <p className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em]">
+          <div className="w-12 h-px bg-gray-100 mx-auto" />
+          <p className="text-[9px] font-black text-black/20 uppercase tracking-[0.4em]">
             Developed by BinTec Solutions
           </p>
         </div>
