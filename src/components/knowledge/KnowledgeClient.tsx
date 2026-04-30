@@ -215,18 +215,6 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
         </div>
       )}
 
-      {/* ── FEATURED SPOTLIGHT ── */}
-      <AnimatePresence mode="wait">
-        {featured && (
-          <FeaturedKnowledgeCard 
-            article={featured} 
-            userId={userId} 
-            onReact={onToggleEmoji} 
-            onCommentClick={() => setCommentingArticle(featured)} 
-            onViewPdf={(url: string) => setSelectedPdf(url)}
-          />
-        )}
-      </AnimatePresence>
 
       {/* ── SECTIONS ── */}
       <div className="space-y-16">
@@ -426,7 +414,7 @@ function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onView
           <div className="absolute inset-0 pointer-events-none overflow-hidden bg-white">
             <iframe
               src={`${article.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-              className="absolute top-0 left-0 w-full h-[400%] border-0 select-none pointer-events-none origin-top scale-[1]"
+              className="absolute -top-10 -left-[5%] w-[110%] h-[500%] border-0 select-none pointer-events-none origin-top scale-[1.05]"
             />
           </div>
         ) : (
