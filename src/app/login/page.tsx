@@ -170,7 +170,7 @@ export default function LoginPage() {
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1 italic">Staff Intranet Portal</p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 text-center md:text-left">
                   <h2 className="text-2xl sm:text-4xl font-black text-black tracking-tight">Employee Login</h2>
                   <p className="text-gray-500 font-medium">Sign in to access the staff intranet</p>
                 </div>
