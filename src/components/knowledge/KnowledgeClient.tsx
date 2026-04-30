@@ -303,7 +303,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
         )}
       </div>
 
-      <AddKnowledgeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} isAdmin={isAdmin} />
+      <AddKnowledgeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
       <CategoryFilterModal 
         isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} activeTab={activeTab}
         onSelect={(sub: string, sec: string) => { setFilterSub(sub); setFilterSection(sec); setIsCategoryModalOpen(false) }} 
@@ -354,7 +354,7 @@ function FeaturedKnowledgeCard({ article, userId, onReact, onCommentClick, onVie
         ) : (
           <img src={article.imageUrl || '/images/placeholder-knowledge.jpg'} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
         )}
-        <div className="absolute top-8 left-8"><span className="px-6 py-2 rounded-full bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-xl">Latest Release</span></div>
+
       </div>
       <div className="lg:w-1/2 p-10 md:p-14 flex flex-col justify-center space-y-8">
         <div className="space-y-4">
@@ -408,7 +408,6 @@ function FeaturedKnowledgeCard({ article, userId, onReact, onCommentClick, onVie
 }
 
 function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onViewPdf, isBlog }: any) {
-  const [isExpanded, setIsExpanded] = useState(false)
   const isPDF = !!article.pdfUrl
   const reactionEmojis = ['❤️', '👍', '👎', '👏']
   
@@ -420,69 +419,47 @@ function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onView
   }, [article.reactions, userId])
 
   return (
-    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="group bg-white rounded-[3rem] overflow-hidden shadow-soft border border-gray-50 flex flex-col">
-      <div className="relative h-56 overflow-hidden bg-white group-hover:bg-gray-50 transition-colors">
+    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="group bg-white rounded-[2rem] overflow-hidden shadow-soft border border-gray-50 flex flex-col">
+      {/* Image/PDF area — edge-to-edge, title bar overlaid at top */}
+      <div className="relative h-44 overflow-hidden bg-gray-100">
         {isPDF && !article.imageUrl ? (
-          <div className="absolute inset-0 pointer-events-none overflow-hidden bg-white group-hover:scale-105 transition-transform duration-700 z-0">
-             <iframe 
-               src={`${article.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
-               className="absolute -top-12 -left-[10%] w-[120%] h-[500%] border-0 select-none opacity-100 transform scale-[0.9] origin-top pointer-events-none" 
-             />
-             <div className="absolute inset-0 bg-gradient-to-t from-gray-100/95 via-gray-50/20 to-transparent pointer-events-none z-10" />
-             <div className="absolute bottom-4 left-[5%] w-[90%] p-5 bg-white/95 backdrop-blur-md rounded-[1.5rem] shadow-xl border border-gray-100 z-20">
-                <h4 className="text-sm font-black uppercase text-gray-900 leading-tight mb-2 line-clamp-1">{article.title}</h4>
-                <p className="text-[10px] font-bold text-gray-500 line-clamp-2">{article.content}</p>
-             </div>
+          <div className="absolute inset-0 pointer-events-none overflow-hidden bg-white">
+            <iframe
+              src={`${article.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+              className="absolute top-0 left-0 w-full h-[400%] border-0 select-none pointer-events-none origin-top scale-[1]"
+            />
           </div>
         ) : (
           <img src={article.imageUrl || '/images/placeholder-knowledge.jpg'} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
         )}
-        <div className="absolute top-6 left-6"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border backdrop-blur-md shadow-lg ${article.documentType === 'Policy' ? 'bg-primary/20 text-primary border-primary/20' : article.documentType === 'SOP' ? 'bg-black/20 text-black border-black/20' : 'bg-gold-leeds/20 text-gold-leeds border-gold-leeds/20'}`}>{article.documentType}</span></div>
-        {isPDF && <div className="absolute top-6 right-6"><div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white"><FileIcon className="w-5 h-5" /></div></div>}
-      </div>
-      <div className="p-8 flex-1 flex flex-col space-y-4">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-[9px] font-black text-gray-600 uppercase"><Clock className="w-3.5 h-3.5" /> {format(new Date(article.createdAt), 'MMM dd, yyyy')}</div>
-          <h3 className="text-xl font-black text-gray-900 group-hover:text-primary transition-colors leading-tight line-clamp-2">{cleanTitle(article.title)} {article.isMultipart && <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded">Part {article.partNumber}</span>}</h3>
-          
-          <div className="relative">
-            <motion.div
-              initial={false}
-              animate={{ height: isExpanded ? 'auto' : '65px' }}
-              className="overflow-hidden relative"
-            >
-              <JustifiedContent
-                content={article.content}
-                className={`text-xs font-medium text-slate-500 ${!isExpanded ? 'line-clamp-3' : ''}`}
-              />
-              {!isExpanded && article.content.length > 100 && (
-                <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent pointer-events-none" />
-              )}
-            </motion.div>
-            
-            {article.content.length > 100 && (
-              <button 
-                onClick={(e) => { e.preventDefault(); setIsExpanded(!isExpanded); }}
-                className="text-[10px] font-black uppercase tracking-tighter text-blue-600 mt-3 flex items-center gap-1 hover:underline"
-              >
-                {isExpanded ? 'Show Less' : 'Read More'}
-                <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-              </button>
-            )}
-          </div>
+
+        {/* Title bar pinned at top of image */}
+        <div className="absolute top-0 inset-x-0 bg-black/60 backdrop-blur-sm px-4 py-2.5 z-20">
+          <h3 className="text-[11px] font-black text-white uppercase tracking-wide leading-snug line-clamp-1">
+            {cleanTitle(article.title)}{article.isMultipart && <span className="text-gold-leeds ml-2">Part {article.partNumber}</span>}
+          </h3>
         </div>
-        <div className="pt-6 border-t border-gray-50 mt-auto flex items-center justify-between">
+
+        {/* Doc type badge bottom-left */}
+        <div className="absolute bottom-3 left-3 z-20">
+          <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border backdrop-blur-md shadow ${article.documentType === 'Policy' ? 'bg-primary/80 text-white border-primary/20' : article.documentType === 'SOP' ? 'bg-black/70 text-white border-black/20' : 'bg-gold-leeds/80 text-white border-gold-leeds/20'}`}>{article.documentType}</span>
+        </div>
+      </div>
+
+      {/* Footer: reactions, comments, actions */}
+      <div className="p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2"><UserAvatar imageUrl={article.author.image} name={article.author.name} size="xs" /><span className="text-[10px] font-black uppercase text-black">{article.author.name.split(' ')[0]}</span></div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="flex -space-x-1">{reactionEmojis.map(emoji => (<ReactionIcon key={emoji} emoji={emoji} data={reactionsMap[emoji]} onClick={() => onReact(article.id, emoji)} />))}</div>
             <button onClick={onCommentClick} className="flex items-center gap-1.5 text-gray-500 hover:text-gold-leeds"><MessageCircle className="w-4 h-4" /><span className="text-[10px] font-black">{article.comments?.length || 0}</span></button>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-2 gap-2">
           {isPDF ? (
-            <><button onClick={() => onViewPdf(article.pdfUrl)} className="flex items-center justify-center gap-2 py-3 bg-primary/5 text-primary rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"><Eye className="w-3.5 h-3.5" /> View</button>
-            <a href={article.pdfUrl} download className="flex items-center justify-center gap-2 py-3 bg-gray-50 text-gray-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all"><Download className="w-3.5 h-3.5" /> Get</a></>
-          ) : (<Link href={`/intranet/knowledge/${article.id}`} className="col-span-2 flex items-center justify-center gap-2 py-3 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 shadow-md transition-all">Read Article <ArrowRight className="w-4 h-4" /></Link>)}
+            <><button onClick={() => onViewPdf(article.pdfUrl)} className="flex items-center justify-center gap-1.5 py-2.5 bg-primary/5 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"><Eye className="w-3.5 h-3.5" /> View</button>
+            <a href={article.pdfUrl} download className="flex items-center justify-center gap-1.5 py-2.5 bg-gray-50 text-gray-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all"><Download className="w-3.5 h-3.5" /> Get</a></>
+          ) : (<Link href={`/intranet/knowledge/${article.id}`} className="col-span-2 flex items-center justify-center gap-2 py-2.5 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 shadow-md transition-all">Read Article <ArrowRight className="w-4 h-4" /></Link>)}
         </div>
       </div>
     </motion.div>
@@ -664,71 +641,78 @@ function CategoryFilterModal({ isOpen, onClose, activeTab, onSelect }: any) {
   )
 }
 
-function AddKnowledgeModal({ isOpen, onClose, isAdmin }: any) {
-  const [step, setStep] = useState(1); const [formData, setFormData] = useState({ documentType: '', mainCategory: '', subCategory: '', academicCategory: '', title: '', description: '', visibility: 'ALL', isMultipart: false, tags: '' }); const [loading, setLoading] = useState(false); const formRef = useRef<HTMLFormElement>(null)
-  if (!isOpen) return null; const handleNext = () => setStep(step + 1); const handleBack = () => setStep(step - 1)
-  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); setLoading(true); const fd = new FormData(formRef.current!); fd.append('isMultipart', formData.isMultipart.toString()); try { await createArticle(fd); toast.success('Submitted!'); onClose(); setStep(1) } catch (err: any) { if (err?.message === 'NEXT_REDIRECT' || err?.digest?.startsWith('NEXT_REDIRECT')) { onClose(); setStep(1); return; } toast.error(err.message) } finally { setLoading(false) } }
+function AddKnowledgeModal({ isOpen, onClose }: any) {
+  const [formData, setFormData] = useState({ title: '' })
+  const [loading, setLoading] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
+
+  if (!isOpen) return null
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    const fd = new FormData(formRef.current!)
+    fd.append('documentType', 'Blog Article')
+    fd.append('mainCategory', 'Blog')
+    fd.append('isMultipart', 'false')
+    try {
+      await createArticle(fd)
+      toast.success('Blog article submitted for review!')
+      onClose()
+    } catch (err: any) {
+      if (err?.message === 'NEXT_REDIRECT' || err?.digest?.startsWith('NEXT_REDIRECT')) { onClose(); return }
+      toast.error(err.message || 'Failed to submit')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} className="absolute inset-0 bg-primary/30 backdrop-blur-xl" />
-      <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="relative bg-white w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden">
-        <form ref={formRef} onSubmit={handleSubmit} className="p-8 md:p-12 space-y-8 max-h-[90vh] overflow-y-auto scrollbar-none border-[3px] border-primary/5 rounded-[3rem]">
-          <div className="flex flex-col gap-6 sticky top-0 bg-white z-20 pb-4 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                  <Plus className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-2xl font-black uppercase text-gray-900 tracking-tight">Add <span className="text-gold-leeds">Knowledge</span></h2>
-                    {formData.title && (
-                      <span className="px-3 py-1 bg-primary/5 text-primary text-[9px] font-black rounded-full border border-primary/10 animate-in fade-in slide-in-from-left-2">
-                        {formData.title}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Resource Creation Suite</p>
-                </div>
+      <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden">
+        <form ref={formRef} onSubmit={handleSubmit} className="p-8 md:p-12 space-y-6 max-h-[90vh] overflow-y-auto scrollbar-none">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                <Plus className="w-6 h-6" />
               </div>
-              <button type="button" onClick={onClose} className="w-10 h-10 rounded-full hover:bg-gray-50 flex items-center justify-center text-gray-300 transition-colors">
-                <X className="w-6 h-6" />
-              </button>
+              <div>
+                <h2 className="text-2xl font-black uppercase text-gray-900 tracking-tight">Write a <span className="text-gold-leeds">Blog Article</span></h2>
+                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Share your knowledge with the team</p>
+              </div>
             </div>
+            <button type="button" onClick={onClose} className="w-10 h-10 rounded-full hover:bg-gray-50 flex items-center justify-center text-gray-300 transition-colors">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
 
-            {/* Step Progress Indicator */}
-            <div className="flex items-center justify-between px-2 gap-2">
-              {[1, 2, 3, 4].map((s) => (
-                <div key={s} className="flex-1 flex items-center gap-2">
-                  <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${step >= s ? 'bg-primary' : 'bg-gray-100'}`} />
-                  {s < 4 && <div className={`w-2 h-2 rounded-full shrink-0 ${step > s ? 'bg-primary' : 'bg-gray-200'}`} />}
-                </div>
-              ))}
+          {/* Form fields */}
+          <div className="space-y-4">
+            <input
+              name="title" required
+              placeholder="Article Title..."
+              value={formData.title}
+              onChange={e => setFormData({ title: e.target.value })}
+              className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10 transition-all"
+            />
+            <textarea
+              name="content" required rows={6}
+              placeholder="Share your thoughts, insights, or expertise..."
+              className="w-full bg-gray-50 border border-gray-100 p-5 rounded-3xl text-sm font-medium outline-none focus:ring-2 focus:ring-primary/10 transition-all resize-none"
+            />
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cover Image <span className="text-red-500">*</span></label>
+              <input type="file" name="image" accept="image/*" required className="w-full text-xs file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary hover:file:text-white transition-all cursor-pointer" />
             </div>
           </div>
-          <AnimatePresence mode="wait">
-            {step === 1 && (<motion.div key="1" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="space-y-6"><p className="text-[10px] font-black uppercase text-primary">Step 1: Select Type</p><div className="grid grid-cols-2 gap-4">{DOCUMENT_TYPES.map(type => { const disabled = !isAdmin && type !== 'Blog Article'; return (<button key={type} type="button" disabled={disabled} onClick={() => { setFormData({...formData, documentType: type}); handleNext() }} className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${disabled ? 'opacity-30 grayscale cursor-not-allowed bg-gray-50' : formData.documentType === type ? 'bg-primary/5 border-primary text-primary' : 'bg-white border-gray-100'}`}><FileText className="w-6 h-6" /><span className="text-[10px] font-black uppercase">{type}</span></button>) })}</div></motion.div>)}
-            {step === 2 && (<motion.div key="2" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="space-y-6">{(formData.documentType === 'Policy' || formData.documentType === 'SOP') ? (<><p className="text-[10px] font-black uppercase text-primary">Step 2: Main Category</p><div className="grid grid-cols-2 gap-4">{['Operations', 'Academic'].map(cat => (<button key={cat} type="button" onClick={() => { setFormData({...formData, mainCategory: cat}); handleNext() }} className={`p-10 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${formData.mainCategory === cat ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white border-gray-100'}`}>{cat === 'Academic' ? <GraduationCap className="w-10 h-10" /> : <Settings className="w-10 h-10" />}<span className="text-[11px] font-black uppercase">{cat}</span></button>))}</div></>) : 
-              (<div className="py-12 text-center space-y-4"><Check className="w-12 h-12 text-teal-500 mx-auto" /><p className="font-black uppercase text-sm">General Content</p><button type="button" onClick={handleNext} className="bg-primary text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px]">Continue</button></div>)}</motion.div>)}
-            {step === 3 && (<motion.div key="3" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="space-y-6">{formData.mainCategory ? (<><p className="text-[10px] font-black uppercase text-primary">Step 3: Sub-Category</p><div className="grid grid-cols-1 gap-3">{(formData.mainCategory === 'Academic' ? ['Academic Management', 'Academic Operations'] : OPERATIONS_SECTIONS).map(sec => (<button key={sec} type="button" onClick={() => { setFormData({...formData, subCategory: sec}); handleNext() }} className={`p-5 rounded-2xl border-2 text-left transition-all flex items-center justify-between ${formData.subCategory === sec ? 'bg-primary/5 border-primary text-primary' : 'bg-white border-gray-100'}`}><span className="text-xs font-bold">{sec}</span><ChevronRight className="w-4 h-4" /></button>))}</div></>) : 
-              (<div className="py-12 text-center space-y-4"><Check className="w-12 h-12 text-teal-500 mx-auto" /><p className="font-black uppercase text-sm">Continue to Content</p><button type="button" onClick={handleNext} className="bg-primary text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px]">Continue</button></div>)}</motion.div>)}
-            {step === 4 && (<motion.div key="4" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="space-y-8">
-               {formData.mainCategory === 'Academic' && (<div className="space-y-4 bg-gray-50 p-6 rounded-3xl border border-gray-100"><p className="text-[9px] font-black uppercase text-gray-400">Final Focus</p><select name="academicCategory" required className="w-full bg-white border border-gray-200 p-4 rounded-2xl text-xs font-bold"><option value="">Select Focus...</option>{ACADEMIC_SECTIONS.map(sec => <option key={sec} value={sec}>{sec}</option>)}</select></div>)}
-               <div className="space-y-6">
-                  <input name="title" required placeholder="Resource Title..." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl text-sm font-bold outline-none" />
-                  <textarea name="content" required rows={5} placeholder="Full content..." className="w-full bg-gray-50 border border-gray-100 p-5 rounded-3xl text-sm font-medium outline-none" />
-                  <div className="flex items-center gap-3"><input type="checkbox" id="isMultipart" checked={formData.isMultipart} onChange={e => setFormData({...formData, isMultipart: e.target.checked})} className="w-4 h-4 rounded text-primary" /><label htmlFor="isMultipart" className="text-xs font-black text-primary uppercase cursor-pointer">Multi-Part split</label></div>
-                  <div className="grid grid-cols-2 gap-6"><div className="space-y-2"><label className="text-[10px] font-black text-gray-400">Image {formData.documentType === 'Blog Article' && <span className="text-red-500">*</span>}</label><input type="file" name="image" accept="image/*" required={formData.documentType === 'Blog Article'} className="w-full text-xs" /></div><div className="space-y-2"><label className="text-[10px] font-black text-gray-400">PDF</label><input type="file" name="pdf" accept=".pdf" className="w-full text-xs" /></div></div>
-                  <div className="space-y-4"><label className="text-[10px] font-black text-gray-400">Visibility</label><div className="flex flex-wrap gap-2">{['ALL', 'Academic Staff Only', 'Operations Staff Only'].map(v => (<button key={v} type="button" onClick={() => setFormData({...formData, visibility: v})} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase ${formData.visibility === v ? 'bg-primary text-white shadow-lg' : 'bg-gray-100 text-gray-400'}`}>{v}</button>))}<input type="hidden" name="visibility" value={formData.visibility} /></div></div>
-               </div>
-               <div className="flex gap-4"><button type="button" onClick={handleBack} className="flex-1 py-4 bg-gray-100 text-gray-400 rounded-2xl font-black uppercase text-[10px]">Back</button><button type="submit" disabled={loading} className="flex-[2] py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] shadow-xl disabled:opacity-50">{loading ? 'Publishing...' : 'Publish'}</button></div>
-            </motion.div>)}
-          </AnimatePresence>
 
-          {/* Persistent Hidden Inputs for Form Submission */}
-          <input type="hidden" name="documentType" value={formData.documentType} />
-          <input type="hidden" name="mainCategory" value={formData.mainCategory} />
-          <input type="hidden" name="subCategory" value={formData.subCategory} />
+          <input type="hidden" name="subCategory" value="" />
+
+          <button type="submit" disabled={loading} className="w-full py-4 bg-primary text-white rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl hover:bg-primary/90 transition-all disabled:opacity-50">
+            {loading ? 'Submitting...' : 'Submit for Review'}
+          </button>
         </form>
       </motion.div>
     </div>
