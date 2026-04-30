@@ -578,17 +578,16 @@ export function DashboardClient({
     </div>
 
       {/* FOOTER */}
-      <footer className="mt-60 pb-12 flex flex-col items-center text-center gap-4 border-t border-gray-100/50 pt-20">
-        <div className="flex items-center gap-3 font-black text-[10px] uppercase tracking-[0.3em] mb-2">
+      <footer className="mt-60 pb-12 flex flex-col items-center text-center space-y-3 border-t border-gray-100/50 pt-20">
+        <div className="flex items-center gap-3 font-black text-[10px] uppercase tracking-[0.3em]">
           <Image src="/logo.png" alt="Logo" width={24} height={24} className="opacity-80 grayscale hover:grayscale-0 transition-all" />
           <span className="text-primary">LEEDS</span><span className="text-gold-leeds">CONNECT</span><span className="text-black">®</span>
         </div>
-        <div className="space-y-2">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
             All rights reserved | IT Department Leeds International School
           </p>
-          <div className="w-12 h-px bg-gray-100 mx-auto" />
-          <p className="text-[9px] font-black text-black/20 uppercase tracking-[0.4em]">
+          <p className="text-[9px] font-black text-black/20 uppercase tracking-[0.4em] leading-none">
             Developed by BinTec Solutions
           </p>
         </div>
