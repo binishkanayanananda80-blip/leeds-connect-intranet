@@ -346,11 +346,13 @@ export async function deleteChatGroup(groupId: string) {
 
   if (!group) throw new Error("Chat not found")
 
+  const roleName = (session.user as any)?.roleName
+  const isAdmin = ['Super Admin', 'Corporate Admin'].includes(roleName)
   const myMembership = group.members.find(m => m.userId === session.user.id)
   const isOwner = myMembership?.role === 'OWNER'
   const isDirect = group.type === 'DIRECT'
 
-  if (!isDirect && !isOwner && !isAdminRole) {
+  if (!isDirect && !isOwner && !isAdmin) {
     throw new Error("Only the group owner or platform admins can delete this chat")
   }
 

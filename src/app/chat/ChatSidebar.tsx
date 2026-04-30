@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { format, isToday, isYesterday } from 'date-fns'
 import { Search, Plus, MessageSquare, Users, Check, X, ChevronDown, Pin, Archive, BellOff, Trash2, LogOut } from 'lucide-react'
-import { createGroupChat, createDirectMessage, markAsRead, removeGroupMember, clearChatMessages, togglePinChat, toggleArchiveChat, toggleMuteChat } from './actions'
+import { createGroupChat, createDirectMessage, markAsRead, removeGroupMember, clearChatMessages, togglePinChat, toggleArchiveChat, toggleMuteChat, deleteChatGroup } from './actions'
 
 function cn(...classes: (string | boolean | undefined)[]) { return classes.filter(Boolean).join(' ') }
 
@@ -44,7 +44,7 @@ function ConvAvatar({ group, currentUserId, size = 'md' }: any) {
 }
 
 // ── CONVERSATION CONTEXT MENU ──
-function ConvMenu({ groupId, isPinned, isArchived, isMuted, isOwner, onClose }: any) {
+function ConvMenu({ groupId, type, isPinned, isArchived, isMuted, isOwner, onClose }: any) {
   const handleAction = async (label: string) => {
     switch (label) {
       case 'Archive chat':
@@ -73,7 +73,8 @@ function ConvMenu({ groupId, isPinned, isArchived, isMuted, isOwner, onClose }: 
         }
         break
       case 'Delete group':
-        if (confirm('Permanently delete this group for everyone?')) {
+      case 'Delete chat':
+        if (confirm(`Permanently delete this ${type === 'GROUP' ? 'group' : 'chat'} for everyone?`)) {
           await deleteChatGroup(groupId)
         }
         break
@@ -87,7 +88,11 @@ function ConvMenu({ groupId, isPinned, isArchived, isMuted, isOwner, onClose }: 
     { icon: Pin, label: isPinned ? 'Unpin chat' : 'Pin chat' },
     { icon: Check, label: 'Mark as read' },
     { icon: Trash2, label: 'Clear chat', danger: true },
-    isOwner ? { icon: Trash2, label: 'Delete group', danger: true } : { icon: LogOut, label: 'Exit group', danger: true },
+    type === 'DIRECT' 
+      ? { icon: Trash2, label: 'Delete chat', danger: true }
+      : isOwner 
+        ? { icon: Trash2, label: 'Delete group', danger: true } 
+        : { icon: LogOut, label: 'Exit group', danger: true },
   ].filter(Boolean) as any[]
   return (
     <div className="absolute right-0 top-0 z-50 w-52 bg-white rounded-xl shadow-2xl border border-gray-100 py-1 overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -282,6 +287,7 @@ export function ChatSidebar({ groups, availableUsers, currentUserId, currentUser
     e.preventDefault()
     setContextMenu({ 
       groupId: g.id, 
+      type: g.type,
       x: e.clientX, 
       y: e.clientY, 
       isPinned: g.isPinned, 
@@ -300,6 +306,7 @@ export function ChatSidebar({ groups, availableUsers, currentUserId, currentUser
           <div className="absolute" style={{ left: contextMenu.x, top: contextMenu.y }}>
             <ConvMenu 
               groupId={contextMenu.groupId} 
+              type={contextMenu.type}
               isPinned={contextMenu.isPinned}
               isArchived={contextMenu.isArchived}
               isMuted={contextMenu.isMuted}
