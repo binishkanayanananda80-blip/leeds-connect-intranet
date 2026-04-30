@@ -297,8 +297,8 @@ export function ChatWindow({ title, avatarUrl, messages: initialMessages, curren
             {avatarUrl ? <img src={avatarUrl} alt={title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-[#5A2D82] text-white font-bold">{title.charAt(0)}</div>}
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-gray-900 truncate text-[15px]">{title}</h2>
-            <p className="text-[12px] text-gray-500 truncate">
+            <h2 className="font-semibold text-gray-900 truncate text-sm sm:text-[15px]">{title}</h2>
+            <p className="text-[10px] sm:text-[12px] text-gray-500 truncate">
               {isTyping.length > 0 ? `${isTyping[0].userName} is typing...` : (groupData?.type === 'GROUP' ? `${groupData.members.length} members` : 'online')}
             </p>
           </div>
@@ -332,7 +332,7 @@ export function ChatWindow({ title, avatarUrl, messages: initialMessages, curren
         {groupedMessages.map((group, gIdx) => (
           <div key={gIdx} className="space-y-2">
             <div className="flex justify-center my-4">
-              <span className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-lg text-[11px] font-bold text-gray-500 shadow-sm uppercase tracking-wider">
+              <span className="bg-white/80 backdrop-blur-sm px-3 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold text-gray-500 shadow-sm uppercase tracking-wider">
                 {renderDateLabel(group.date)}
               </span>
             </div>
@@ -359,7 +359,7 @@ export function ChatWindow({ title, avatarUrl, messages: initialMessages, curren
       {replyTo && (
         <div className="px-4 py-2 bg-white border-t flex items-center gap-3 animate-in slide-in-from-bottom-2">
           <div className="flex-1 bg-gray-50 rounded-lg p-2 border-l-4 border-[#5A2D82] text-sm truncate">
-            <p className="font-bold text-[#5A2D82] text-xs uppercase">{replyTo.sender?.name}</p>
+            <p className="font-bold text-[#5A2D82] text-[10px] sm:text-xs uppercase">{replyTo.sender?.name}</p>
             <p className="text-gray-500 truncate">{replyTo.content || 'File attachment'}</p>
           </div>
           <button onClick={() => setReplyTo(null)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
@@ -373,9 +373,9 @@ export function ChatWindow({ title, avatarUrl, messages: initialMessages, curren
         <div className="px-4 py-3 bg-white border-t flex items-center justify-between animate-in slide-in-from-bottom-2">
           <div className="flex items-center gap-3 text-red-500">
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-sm font-bold uppercase tracking-widest">{formatTime(recordingTime)}</span>
+            <span className="text-xs sm:text-sm font-bold uppercase tracking-widest">{formatTime(recordingTime)}</span>
           </div>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Recording voice message...</p>
+          <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest">Recording voice message...</p>
           <button onClick={stopRecording} className="text-red-500 font-bold text-xs uppercase hover:bg-red-50 px-3 py-1 rounded-full transition-colors">Stop</button>
         </div>
       )}
@@ -424,7 +424,7 @@ export function ChatWindow({ title, avatarUrl, messages: initialMessages, curren
                 }
               }}
               placeholder="Type a message" 
-              className="w-full bg-transparent border-none focus:ring-0 text-[15px] leading-6 resize-none max-h-32 py-1 outline-none"
+              className="w-full bg-transparent border-none focus:ring-0 text-sm sm:text-[15px] leading-6 resize-none max-h-32 py-1 outline-none"
             />
           </div>
 

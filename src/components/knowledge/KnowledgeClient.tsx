@@ -164,14 +164,14 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-[1400px] mx-auto space-y-12">
+    <div className="p-3 md:p-6 max-w-[1400px] mx-auto space-y-12">
       
       {/* ── TOP NAVIGATION ── */}
       <div className="bg-white rounded-[2.5rem] p-3 shadow-premium border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none w-full md:w-auto">
           {NAVIGATION_TABS.map(tab => (
             <button key={tab} onClick={() => handleTabClick(tab)}
-              className={`px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+              className={`px-4 sm:px-8 py-3 rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                 activeTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-transparent text-gray-600 hover:text-primary hover:bg-primary/5'
               }`}>
               {tab}
@@ -222,7 +222,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
         {(activeTab === 'All' || activeTab === 'Policies' || activeTab === 'SOPs') && sopsAndPolicies.length > 0 && (
           <section className="space-y-6">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-lg font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-3">
+              <h2 className="text-sm sm:text-lg font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-3">
                 <FileCheck2 className="w-6 h-6 text-blue-600" /> SOPs & Institutional Policies
               </h2>
               <div className="h-px flex-1 bg-slate-100 mx-6 hidden md:block" />
@@ -243,7 +243,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
         {(activeTab === 'All' || activeTab === 'Blog Articles') && blogArticles.length > 0 && (
           <section className="space-y-6">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-lg font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-3">
+              <h2 className="text-sm sm:text-lg font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-3">
                 <BookOpen className="w-6 h-6 text-emerald-600" /> Professional Blog Articles
               </h2>
               <div className="h-px flex-1 bg-slate-100 mx-6 hidden md:block" />
@@ -265,7 +265,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
         {(activeTab === 'All' || activeTab === 'Resources') && resourceArticles.length > 0 && (
           <section className="space-y-6">
             <div className="flex items-center justify-between px-4">
-              <h2 className="text-lg font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-3">
+              <h2 className="text-sm sm:text-lg font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-3">
                 <LayoutDashboard className="w-6 h-6 text-amber-600" /> Resource Library
               </h2>
               <div className="h-px flex-1 bg-slate-100 mx-6 hidden md:block" />
@@ -335,7 +335,7 @@ function FeaturedKnowledgeCard({ article, userId, onReact, onCommentClick, onVie
              {/* Gradient Overlay for the "description in the placeholder" effect */}
              <div className="absolute inset-0 bg-gradient-to-t from-gray-100/95 via-gray-50/40 to-transparent pointer-events-none z-10" />
              <div className="absolute bottom-10 left-[10%] w-[80%] p-8 bg-white/95 backdrop-blur-md rounded-[2rem] shadow-2xl border border-gray-100">
-                <h4 className="text-2xl font-black uppercase text-gray-900 leading-tight mb-3">{article.title}</h4>
+                <h4 className="text-lg sm:text-2xl font-black uppercase text-gray-900 leading-tight mb-3">{article.title}</h4>
                 <p className="text-sm font-bold text-gray-500 line-clamp-2">{article.content}</p>
              </div>
           </div>
@@ -347,7 +347,7 @@ function FeaturedKnowledgeCard({ article, userId, onReact, onCommentClick, onVie
       <div className="lg:w-1/2 p-10 md:p-14 flex flex-col justify-center space-y-8">
         <div className="space-y-4">
           <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-gold-leeds"><Sparkles className="w-4 h-4" /> {article.documentType} · {article.mainCategory}</div>
-          <h2 className="text-3xl md:text-4xl font-black text-gray-900 leading-tight">{cleanTitle(article.title)} {article.isMultipart && <span className="text-primary ml-4">Part {article.partNumber}</span>}</h2>
+          <h2 className="text-xl md:text-4xl font-black text-gray-900 leading-tight">{cleanTitle(article.title)} {article.isMultipart && <span className="text-primary ml-4">Part {article.partNumber}</span>}</h2>
           
           <motion.div 
             initial={false}
@@ -429,7 +429,7 @@ function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onView
 
         {/* Title bar pinned at top of image */}
         <div className="absolute top-0 inset-x-0 bg-primary/90 backdrop-blur-md px-4 py-2.5 z-20 border-b border-white/10">
-          <h3 className="text-[11px] font-black text-white uppercase tracking-wide leading-snug line-clamp-1">
+          <h3 className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wide leading-snug line-clamp-1">
             {cleanTitle(article.title)}{article.isMultipart && <span className="text-gold-leeds ml-2">Part {article.partNumber}</span>}
           </h3>
         </div>

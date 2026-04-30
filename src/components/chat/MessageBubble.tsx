@@ -67,7 +67,7 @@ export function MessageBubble({ message, currentUserId, isGroup, onReply, onForw
             }
           }
           return part ? (
-            <span key={index} className={`text-[15px] leading-relaxed whitespace-pre-wrap break-words ${
+            <span key={index} className={`text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words ${
               isMe ? 'text-[#5A2D82] font-semibold' : 'text-gray-800'
             } ${isBigEmoji ? 'hidden' : ''}`}>
               {part}
@@ -98,7 +98,7 @@ export function MessageBubble({ message, currentUserId, isGroup, onReply, onForw
             <FileIcon size={18} />
           </div>
           <div className="flex-1 min-w-0 text-left">
-            <p className={`text-sm font-bold truncate ${isMe ? 'text-[#5A2D82]' : 'text-gray-700'}`}>{message.fileName}</p>
+            <p className={`text-xs sm:text-sm font-bold truncate ${isMe ? 'text-[#5A2D82]' : 'text-gray-700'}`}>{message.fileName}</p>
             <p className="text-[10px] uppercase font-bold tracking-tighter text-gray-400">
                {message.fileSize ? (message.fileSize / 1024).toFixed(1) + ' KB' : 'Document'} · PDF
             </p>
@@ -156,10 +156,10 @@ export function MessageBubble({ message, currentUserId, isGroup, onReply, onForw
           <div className={`mb-1 z-0 opacity-80 scale-[0.98] origin-bottom px-3 py-2 rounded-xl border-l-4 ${
             isMe ? 'bg-[#5A2D82]/5 border-[#5A2D82]' : 'bg-gray-100 border-gray-400'
           }`}>
-             <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">
+             <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">
                {message.replyTo.sender?.name || 'Unknown'}
              </p>
-             <p className="text-xs text-gray-600 line-clamp-1 italic">
+              <p className="text-[10px] sm:text-xs text-gray-600 line-clamp-1 italic">
                {message.replyTo.content || 'File Attachment'}
              </p>
           </div>
@@ -170,7 +170,7 @@ export function MessageBubble({ message, currentUserId, isGroup, onReply, onForw
         }`}>
           {/* Group Sender Name */}
           {isGroup && !isMe && (
-            <p className="text-[11px] font-black uppercase tracking-widest mb-1.5" style={{ color: '#5A2D82' }}>
+            <p className="text-[10px] sm:text-[11px] font-black uppercase tracking-widest mb-1.5" style={{ color: '#5A2D82' }}>
               {message.sender?.name || 'Staff'}
             </p>
           )}
@@ -190,7 +190,7 @@ export function MessageBubble({ message, currentUserId, isGroup, onReply, onForw
 
           <div className={`flex flex-col min-w-[60px] ${isMe ? 'items-end' : 'items-start'}`}>
             <div className={`flex items-center gap-1 mt-1 opacity-40 ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <span className="text-[10px] font-bold uppercase tracking-tighter">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-tighter">
                 {format(new Date(message.createdAt), 'h:mm a')}
               </span>
               {isMe && (

@@ -166,18 +166,18 @@ export default function LoginPage() {
                   <div className="w-20 h-20 bg-white rounded-3xl mx-auto mb-6 flex items-center justify-center shadow-xl border border-gray-100">
                     <Image src="/logo.png" alt="Leeds Logo" width={50} height={50} />
                   </div>
-                  <h1 className="text-3xl font-black text-black tracking-tight uppercase">Leeds Connect</h1>
+                  <h1 className="text-2xl sm:text-3xl font-black text-black tracking-tight uppercase">Leeds Connect</h1>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1 italic">Staff Intranet Portal</p>
                 </div>
 
                 <div className="space-y-2">
-                  <h2 className="text-4xl font-black text-black tracking-tight">Employee Login</h2>
+                  <h2 className="text-2xl sm:text-4xl font-black text-black tracking-tight">Employee Login</h2>
                   <p className="text-gray-500 font-medium">Sign in to access the staff intranet</p>
                 </div>
 
                 <form action={formAction} className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase tracking-widest text-black/60 ml-1">Employee ID</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-black/60 ml-1">Employee ID</label>
                     <div className="relative">
                       <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"><IdCard size={18} /></div>
                       <input name="employeeNo" type="text" required value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} placeholder="e.g. EMP001" className="w-full bg-[#F4F4F5] border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-2xl pl-16 pr-6 py-4 text-sm font-bold text-black outline-none transition-all placeholder:text-gray-400" />
@@ -185,7 +185,7 @@ export default function LoginPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase tracking-widest text-black/60 ml-1">Full Name</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-black/60 ml-1">Full Name</label>
                     <div className="relative">
                       <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"><User size={18} /></div>
                       <input type="text" value={employeeName} readOnly placeholder="Auto-populated" className="w-full bg-primary/5 border-2 border-transparent rounded-2xl pl-16 pr-6 py-4 text-sm font-bold text-black/70 outline-none transition-all cursor-not-allowed" />
@@ -193,7 +193,7 @@ export default function LoginPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase tracking-widest text-black/60 ml-1">Branch</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-black/60 ml-1">Branch</label>
                     <div className="relative">
                       <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"><MapPin size={18} /></div>
                       <input type="text" value={branchName} readOnly placeholder="Auto-populated" className="w-full bg-primary/5 border-2 border-transparent rounded-2xl pl-16 pr-6 py-4 text-sm font-bold text-black/70 outline-none transition-all cursor-not-allowed" />
@@ -202,7 +202,7 @@ export default function LoginPage() {
 
                   <div className="space-y-2">
                     <div className="flex justify-between items-end px-1">
-                      <label className="text-[11px] font-black uppercase tracking-widest text-black/60">Password</label>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-black/60">Password</label>
                       <button type="button" onClick={() => setStage('forgot-request')} className="text-[10px] font-black text-primary hover:underline transition-colors uppercase tracking-widest">Forgot password?</button>
                     </div>
                     <div className="relative">
@@ -227,12 +227,12 @@ export default function LoginPage() {
               <motion.div key="forgot-request" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
                 <button onClick={() => setStage('login')} className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors text-xs font-bold uppercase tracking-widest"><ArrowLeft size={16} /> Back to Login</button>
                 <div className="space-y-2">
-                  <h2 className="text-4xl font-black text-black tracking-tight">Reset Password</h2>
+                  <h2 className="text-2xl sm:text-4xl font-black text-black tracking-tight">Reset Password</h2>
                   <p className="text-gray-500 font-medium">Enter your Employee ID to receive a verification code.</p>
                 </div>
                 <form onSubmit={handleRequestReset} className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase tracking-widest text-black/60 ml-1">Employee ID</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-black/60 ml-1">Employee ID</label>
                     <div className="relative">
                       <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"><IdCard size={18} /></div>
                       <input type="text" required value={resetId} onChange={(e) => setResetId(e.target.value)} placeholder="e.g. EMP001" className="w-full bg-[#F4F4F5] border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-2xl pl-16 pr-6 py-4 text-sm font-bold text-black outline-none transition-all placeholder:text-gray-400" />
@@ -251,12 +251,12 @@ export default function LoginPage() {
               <motion.div key="forgot-verify" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
                 <button onClick={() => setStage('forgot-request')} className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors text-xs font-bold uppercase tracking-widest"><ArrowLeft size={16} /> Change ID</button>
                 <div className="space-y-2">
-                  <h2 className="text-4xl font-black text-black tracking-tight">Verify OTP</h2>
+                  <h2 className="text-2xl sm:text-4xl font-black text-black tracking-tight">Verify OTP</h2>
                   <p className="text-gray-500 font-medium">A secure code has been sent to the Administration. Please contact a Supervisor or Admin to receive your code.</p>
                 </div>
                 <form onSubmit={handleVerifyOtp} className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase tracking-widest text-black/60 ml-1">6-Digit Code</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-black/60 ml-1">6-Digit Code</label>
                     <div className="relative">
                       <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"><ShieldCheck size={18} /></div>
                       <input type="text" maxLength={6} required value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="000000" className="w-full bg-[#F4F4F5] border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-2xl pl-16 pr-6 py-4 text-2xl font-black tracking-[0.5em] text-black outline-none transition-all placeholder:text-gray-300 text-center" />
@@ -275,19 +275,19 @@ export default function LoginPage() {
             {stage === 'forgot-reset' && (
               <motion.div key="forgot-reset" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
                 <div className="space-y-2">
-                  <h2 className="text-4xl font-black text-black tracking-tight">New Password</h2>
+                  <h2 className="text-2xl sm:text-4xl font-black text-black tracking-tight">New Password</h2>
                   <p className="text-gray-500 font-medium">Create a strong password to secure your account.</p>
                 </div>
                 <form onSubmit={handleFinalReset} className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase tracking-widest text-black/60 ml-1">New Password</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-black/60 ml-1">New Password</label>
                     <div className="relative">
                       <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"><KeyRound size={18} /></div>
                       <input type="password" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" className="w-full bg-[#F4F4F5] border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-2xl pl-16 pr-6 py-4 text-sm font-bold text-black outline-none transition-all" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase tracking-widest text-black/60 ml-1">Confirm Password</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-black/60 ml-1">Confirm Password</label>
                     <div className="relative">
                       <div className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"><KeyRound size={18} /></div>
                       <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="w-full bg-[#F4F4F5] border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-2xl pl-16 pr-6 py-4 text-sm font-bold text-black outline-none transition-all" />

@@ -165,7 +165,7 @@ export function DashboardClient({
   }, [articles]);
 
   return (
-    <div className="max-w-[1600px] mx-auto px-8 pb-12 min-h-screen flex flex-col">
+    <div className="max-w-[1600px] mx-auto px-4 md:px-8 pb-12 min-h-screen flex flex-col">
       <div className="flex-1 space-y-10">
       <WebBannerPopup />
       
@@ -208,11 +208,11 @@ export function DashboardClient({
                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">Leeds Connect Hub</span>
               </div>
             </div>
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-white leading-[1.1]">
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4 text-white leading-[1.1]">
               Welcome back, <br />
               <span className="text-gold-leeds">{firstName}.</span>
             </h1>
-            <p className="text-base md:text-lg text-white/80 font-medium mb-2 leading-relaxed max-w-lg">
+            <p className="text-sm md:text-lg text-white/80 font-medium mb-2 leading-relaxed max-w-lg">
               You have <span className="text-white font-bold">{stats.birthdayTodayCount || 0} birthday celebrations</span>, <span className="text-white font-bold">{stats.unreadNotifs || 0} notifications</span>, and <span className="text-white font-bold">{sortedArticles.length} new articles</span> to read.
             </p>
           </div>
@@ -224,7 +224,7 @@ export function DashboardClient({
         
         {/* A. TODAY'S BIRTH DAY CELEBRATIONS */}
         <section className="space-y-6">
-          <h2 className="text-base md:text-lg font-black tracking-tight px-1 text-black uppercase">
+          <h2 className="text-sm md:text-lg font-black tracking-tight px-1 text-black uppercase">
             <span className="text-primary">Todays</span> <span className="text-gold-leeds">Birth Day</span> Celebrations
           </h2>
           <div className="grid grid-cols-1 gap-6">
@@ -293,7 +293,7 @@ export function DashboardClient({
         {/* B. UPCOMING CELEBRATIONS (Birthdays & Anniversaries) */}
         <section className="space-y-6">
           <div className="flex items-center justify-between pr-2">
-            <h2 className="text-base md:text-lg font-black tracking-tight px-1 text-black uppercase">
+            <h2 className="text-sm md:text-lg font-black tracking-tight px-1 text-black uppercase">
               <span className="text-primary">Celebrations and</span> <span className="text-gold-leeds">Milestones</span>
             </h2>
             <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shadow-sm border border-primary/20">
@@ -382,7 +382,7 @@ export function DashboardClient({
 
         {/* C. WELCOME TO LEEDS FAMILY (Interactive Grid) */}
         <section className="space-y-6">
-          <h2 className="text-base md:text-lg font-black tracking-tight px-1 uppercase">
+          <h2 className="text-sm md:text-lg font-black tracking-tight px-1 uppercase">
             <span className="text-primary">Welcome to</span> <span className="text-gold-leeds">Leeds</span> <span className="text-black">Family</span>
           </h2>
           <div className="grid grid-cols-2 gap-6">
@@ -448,7 +448,7 @@ export function DashboardClient({
           <section className="space-y-6">
             <div className="flex items-center justify-between px-2">
               <div className="space-y-1">
-                <h2 className="text-xl md:text-2xl font-black tracking-tight uppercase">
+                <h2 className="text-lg md:text-2xl font-black tracking-tight uppercase">
                   <span className="text-primary">Leeds</span> <span className="text-gold-leeds">News</span> <span className="text-black">Feed</span>
                 </h2>
                 <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">Leeds community live</p>
@@ -483,7 +483,7 @@ export function DashboardClient({
                     </div>
                   </div>
                   <div className="space-y-2 px-1">
-                    <h5 className="text-lg md:text-xl font-black text-primary uppercase tracking-tight">{post.title}</h5>
+                    <h5 className="text-base md:text-xl font-black text-primary uppercase tracking-tight">{post.title}</h5>
                     <p className="text-sm text-gray-800 leading-relaxed line-clamp-3">
                       {post.content}
                     </p>
@@ -505,7 +505,7 @@ export function DashboardClient({
           <section className="space-y-6">
             <div className="flex items-center justify-between px-2">
               <div className="space-y-1">
-                <h2 className="text-xl md:text-2xl font-black tracking-tight uppercase">
+                <h2 className="text-lg md:text-2xl font-black tracking-tight uppercase">
                   <span className="text-primary">Recent</span> <span className="text-gold-leeds">Knowledge</span> <span className="text-black">Articles</span>
                 </h2>
                 <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">Curated from the Knowledge Hub</p>
@@ -548,7 +548,7 @@ export function DashboardClient({
                       <Sparkles className="w-3.5 h-3.5" />
                       {article.mainCategory || 'Knowledge Hub'}
                     </div>
-                    <h3 className="text-lg font-black text-gray-900 mb-3 group-hover:text-primary transition-colors leading-tight line-clamp-2">
+                    <h3 className="text-base sm:text-lg font-black text-gray-900 mb-3 group-hover:text-primary transition-colors leading-tight line-clamp-2">
                       {cleanTitle(article.title)} {article.isMultipart && <span className="text-primary text-[10px] ml-2">Part {article.partNumber}</span>}
                     </h3>
                     <p className="text-xs font-medium text-gray-500 line-clamp-2 mb-6 leading-relaxed flex-1 italic opacity-80">

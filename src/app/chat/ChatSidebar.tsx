@@ -163,8 +163,8 @@ function NewGroupModal({ users, categories, currentUserId, onClose }: any) {
                 <button key={u.id} onClick={() => toggle(u.id)} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${selectedMembers.includes(u.id) ? 'bg-[#5A2D82]/5' : ''}`}>
                   <Avatar name={u.name} image={u.image} color={getSenderColor(u.id)} />
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{u.name}</p>
-                    <p className="text-xs text-gray-400 truncate">{u.role?.name || 'Staff'}</p>
+                    <p className="text-xs font-semibold text-gray-900 truncate">{u.name}</p>
+                    <p className="text-[10px] text-gray-400 truncate">{u.role?.name || 'Staff'}</p>
                   </div>
                   {selectedMembers.includes(u.id) && <div className="w-5 h-5 rounded-full bg-[#5A2D82] flex items-center justify-center"><Check size={12} className="text-white" /></div>}
                 </button>
@@ -228,10 +228,10 @@ function NewDMModal({ users, currentUserId, onClose }: any) {
             <form key={u.id} action={createDirectMessage} onSubmit={onClose}>
               <input type="hidden" name="targetId" value={u.id} />
               <button type="submit" className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
-                <Avatar name={u.name} image={u.image} color={getSenderColor(u.id)} />
+                <Avatar name={u.name} image={u.image} size="sm" color={getSenderColor(u.id)} />
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{u.name}</p>
-                  <p className="text-xs text-gray-400 truncate">{u.designation || u.role?.name || 'Staff'}</p>
+                  <p className="text-xs font-semibold text-gray-900 truncate">{u.name}</p>
+                  <p className="text-[10px] text-gray-400 truncate">{u.designation || u.role?.name || 'Staff'}</p>
                 </div>
               </button>
             </form>
@@ -373,7 +373,7 @@ export function ChatSidebar({ groups, availableUsers, currentUserId, currentUser
           {groups.some((g: any) => g.isArchived) && tab === 'all' && (
             <button onClick={() => setTab('archived' as any)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 text-[#5A2D82]">
               <Archive size={20} className="shrink-0" />
-              <span className="text-[15px] font-semibold flex-1 text-left">Archived</span>
+              <span className="text-[13px] font-semibold flex-1 text-left">Archived</span>
               <span className="text-xs font-bold bg-[#5A2D82]/10 px-2 py-0.5 rounded-full">{groups.filter((g: any) => g.isArchived).length}</span>
             </button>
           )}
@@ -397,21 +397,21 @@ export function ChatSidebar({ groups, availableUsers, currentUserId, currentUser
                     isActive ? 'bg-[#F0F2F5]' : 'hover:bg-[#F5F5F5]'
                   )}
                 >
-                  <ConvAvatar group={g} currentUserId={currentUserId} />
+                  <ConvAvatar group={g} currentUserId={currentUserId} size="sm" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1 min-w-0">
-                        <p className="text-[15px] font-semibold text-gray-900 truncate">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
                           <ConvName group={g} currentUserId={currentUserId} />
                         </p>
                         {g.isMuted && <BellOff size={12} className="text-gray-300 shrink-0" />}
                       </div>
-                      <span className={cn('text-xs shrink-0 ml-1', g.unreadCount > 0 ? 'text-[#5A2D82] font-semibold' : 'text-gray-400')}>
+                      <span className={cn('text-[11px] shrink-0 ml-1', g.unreadCount > 0 ? 'text-[#5A2D82] font-semibold' : 'text-gray-400')}>
                         {lastMsg ? getTime(lastMsg.createdAt) : ''}
                       </span>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <p className="text-[13px] text-gray-400 truncate max-w-[180px]">
+                      <p className="text-xs text-gray-400 truncate max-w-[180px]">
                         <span className="font-medium text-gray-500">{senderPrefix}</span>{preview}
                       </p>
                       <div className="flex items-center gap-1.5 shrink-0 ml-1">
