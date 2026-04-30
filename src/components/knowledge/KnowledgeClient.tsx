@@ -457,9 +457,14 @@ function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onView
               </button>
               <button 
                 onClick={() => {
-                  const safeName = article.title.replace(/[/\\?%*:|"<>]/g, '-');
+                  const safeName = article.title.replace(/[^a-z0-9]/gi, '-');
                   const downloadUrl = `/api/proxy-download?url=${encodeURIComponent(article.pdfUrl)}&filename=${encodeURIComponent(safeName)}`;
-                  window.location.href = downloadUrl;
+                  const link = document.createElement('a');
+                  link.href = downloadUrl;
+                  link.download = `${safeName}.pdf`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
                 }}
                 className="flex items-center justify-center gap-1.5 py-2.5 bg-gray-50 text-gray-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all"
               >
@@ -624,7 +629,12 @@ function PDFViewerModal({ url, title, onClose }: { url: string | null, title: st
                    if (!url) return;
                    const safeName = title.replace(/[^a-z0-9]/gi, '-');
                    const downloadUrl = `/api/proxy-download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(safeName)}`;
-                   window.location.href = downloadUrl;
+                   const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = `${safeName}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
                  }} className="flex items-center gap-2 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 transition-all">
                  <Download className="w-4 h-4" /> Download Local Copy
               </button>
