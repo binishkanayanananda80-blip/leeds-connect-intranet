@@ -60,7 +60,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [commentingArticle, setCommentingArticle] = useState<any | null>(null)
-  const [selectedPdf, setSelectedPdf] = useState<string | null>(null)
+  const [selectedPdf, setSelectedPdf] = useState<{url: string, title: string} | null>(null)
 
   const userId = session?.user?.id
   const roleName = session?.user?.roleName
@@ -232,7 +232,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
                 <KnowledgeCard 
                   key={article.id} article={article} index={i} userId={userId}
                   onReact={onToggleEmoji} onCommentClick={() => setCommentingArticle(article)}
-                  onViewPdf={(url: string) => setSelectedPdf(url)}
+                  onViewPdf={(url: string) => setSelectedPdf({ url, title: article.title })}
                 />
               ))}
             </div>
@@ -253,7 +253,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
                 <KnowledgeCard 
                   key={article.id} article={article} index={i} userId={userId}
                   onReact={onToggleEmoji} onCommentClick={() => setCommentingArticle(article)}
-                  onViewPdf={(url: string) => setSelectedPdf(url)}
+                  onViewPdf={(url: string) => setSelectedPdf({ url, title: article.title })}
                   isBlog
                 />
               ))}
@@ -275,7 +275,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
                 <KnowledgeCard 
                   key={article.id} article={article} index={i} userId={userId}
                   onReact={onToggleEmoji} onCommentClick={() => setCommentingArticle(article)}
-                  onViewPdf={(url: string) => setSelectedPdf(url)}
+                  onViewPdf={(url: string) => setSelectedPdf({ url, title: article.title })}
                 />
               ))}
             </div>
@@ -301,7 +301,7 @@ export function KnowledgeClient({ articles, session }: { articles: any[], sessio
         onClose={() => setCommentingArticle(null)} 
         user={session?.user}
       />
-      <PDFViewerModal url={selectedPdf} title="Document View" onClose={() => setSelectedPdf(null)} />
+      <PDFViewerModal url={selectedPdf?.url} title={selectedPdf?.title || "Document View"} onClose={() => setSelectedPdf(null)} />
     </div>
   )
 }
@@ -619,9 +619,15 @@ function PDFViewerModal({ url, title, onClose }: { url: string | null, title: st
              <iframe src={`${url}#toolbar=0`} className="w-full h-full rounded-2xl shadow-inner border-0" />
            </div>
            <div className="p-6 bg-white border-t border-gray-100 flex items-center justify-center gap-6">
-              <a href={url} download className="flex items-center gap-2 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 transition-all">
+              <button 
+                 onClick={() => {
+                   if (!url) return;
+                   const safeName = title.replace(/[^a-z0-9]/gi, '-');
+                   const downloadUrl = `/api/proxy-download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(safeName)}`;
+                   window.location.href = downloadUrl;
+                 }} className="flex items-center gap-2 px-6 py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 transition-all">
                  <Download className="w-4 h-4" /> Download Local Copy
-              </a>
+              </button>
               <button onClick={onClose} className="px-8 py-3 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
                  Close Viewer
               </button>
