@@ -165,7 +165,8 @@ export function DashboardClient({
   }, [articles]);
 
   return (
-    <div className="max-w-[1600px] mx-auto px-8 pb-12 space-y-10">
+    <div className="max-w-[1600px] mx-auto px-8 pb-12 min-h-screen flex flex-col">
+      <div className="flex-1 space-y-10">
       <WebBannerPopup />
       
       {/* ── 1. HERO SECTION (FULL WIDTH) ── */}
@@ -574,6 +575,7 @@ export function DashboardClient({
           </section>
         </div>
       </div>
+    </div>
 
       {/* FOOTER */}
       <footer className="mt-60 pb-12 flex flex-col items-center text-center gap-4 border-t border-gray-100/50 pt-20">
