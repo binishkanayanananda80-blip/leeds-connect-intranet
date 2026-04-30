@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { CelebrationsClient } from '@/components/celebrations/CelebrationsClient'
+import CelebrationsClient from '@/components/celebrations/CelebrationsClient'
 
 async function addMilestone(formData: FormData) {
   'use server'
