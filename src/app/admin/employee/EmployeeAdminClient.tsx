@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, X, CheckCircle, Image as ImageIcon, Users, FileSpreadsheet, List, Plus, Search, Eye, Edit, UserX, UserCheck, Trash2, ShieldAlert, ChevronDown } from 'lucide-react'
+import { Upload, X, CheckCircle, Image as ImageIcon, Users, FileSpreadsheet, List, Plus, Search, Eye, Edit, UserX, UserCheck, Trash2, ShieldAlert, ChevronDown, KeyRound } from 'lucide-react'
 import Papa from 'papaparse'
-import { createEmployee, getBranches, getEmployeesByBranch, suspendEmployee, reactivateEmployee, deleteEmployee, getRoles, getEmployeeCategories, updateEmployeeImage, updateEmployee, getDepartments, getEmployeeSubCategories } from './actions'
+import { createEmployee, getBranches, getEmployeesByBranch, suspendEmployee, reactivateEmployee, deleteEmployee, getRoles, getEmployeeCategories, updateEmployeeImage, updateEmployee, getDepartments, getEmployeeSubCategories, resetEmployeePassword } from './actions'
 import { UserAvatar } from '@/components/ui/UserAvatar'
 
 export default function EmployeeAdminClient({ roleName }: { roleName: string }) {
@@ -60,6 +60,9 @@ function EmployeeListTab({ roleName, isAdmin }: { roleName: string, isAdmin: boo
   const [viewEmployee, setViewEmployee] = useState<any | null>(null)
   const [editingEmployee, setEditingEmployee] = useState<any | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [resettingEmployee, setResettingEmployee] = useState<any | null>(null)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -119,6 +122,22 @@ function EmployeeListTab({ roleName, isAdmin }: { roleName: string, isAdmin: boo
     if (!confirm(`PERMANENTLY DELETE ${name}? This cannot be undone.`)) return
     await deleteEmployee(userId)
     load()
+  }
+
+  const handleResetPassword = async () => {
+    if (!resettingEmployee) return
+    setResetLoading(true)
+    const res = await resetEmployeePassword(resettingEmployee.user.id)
+    setResetLoading(false)
+    if (res?.error) {
+      alert(res.error)
+    } else {
+      setResetSuccess(true)
+      setTimeout(() => {
+        setResettingEmployee(null)
+        setResetSuccess(false)
+      }, 2000)
+    }
   }
 
   return (
@@ -206,6 +225,11 @@ function EmployeeListTab({ roleName, isAdmin }: { roleName: string, isAdmin: boo
                         ) : (
                           <button onClick={() => handleReactivate(emp.user.id)} title="Reactivate" className="p-2 bg-emerald-50 text-emerald-500 hover:bg-emerald-100 rounded-xl transition-colors border border-emerald-100">
                             <UserCheck size={14} />
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button onClick={() => { setResettingEmployee(emp); setResetSuccess(false) }} title="Reset Password" className="p-2 bg-violet-50 text-violet-500 hover:bg-violet-500 hover:text-white rounded-xl transition-all border border-violet-100">
+                            <KeyRound size={14} />
                           </button>
                         )}
                         {isAdmin && (
@@ -298,6 +322,61 @@ function EmployeeListTab({ roleName, isAdmin }: { roleName: string, isAdmin: boo
               </button>
               <h2 className="text-2xl font-black uppercase tracking-tight text-black mb-8">Edit Employee</h2>
               <EmployeeForm roleName={roleName} initialData={editingEmployee} onSuccess={() => { setEditingEmployee(null); load(); }} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Reset Password Confirmation Modal ── */}
+      <AnimatePresence>
+        {resettingEmployee && (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !resetLoading && setResettingEmployee(null)} className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white rounded-[2.5rem] shadow-2xl p-8 w-full max-w-md z-10">
+              {resetSuccess ? (
+                <div className="flex flex-col items-center text-center py-4 gap-4">
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle size={32} className="text-emerald-500" />
+                  </div>
+                  <h3 className="text-xl font-black uppercase tracking-tight text-gray-900">Password Reset!</h3>
+                  <p className="text-sm text-gray-500 font-medium">The employee will be prompted to change their password on next login.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 rounded-2xl bg-violet-100 flex items-center justify-center shrink-0">
+                      <KeyRound size={24} className="text-violet-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black uppercase tracking-tight text-gray-900">Reset Password</h3>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Admin Action</p>
+                    </div>
+                  </div>
+                  <div className="bg-violet-50 border border-violet-100 rounded-2xl p-4 mb-6">
+                    <p className="text-sm font-bold text-violet-900">
+                      You are about to reset the password for:
+                    </p>
+                    <p className="text-lg font-black text-violet-700 mt-1">{resettingEmployee.firstName} {resettingEmployee.lastName}</p>
+                    <p className="text-xs font-bold text-violet-500 uppercase tracking-widest">{resettingEmployee.employeeNumber}</p>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-8">
+                    <p className="text-xs font-black text-amber-800 uppercase tracking-widest mb-1">⚠️ What will happen</p>
+                    <ul className="text-xs text-amber-700 font-medium space-y-1 list-disc list-inside">
+                      <li>Password will be reset to <span className="font-black">password123</span></li>
+                      <li>Employee must change password on next login</li>
+                      <li>This action will be recorded in the audit log</li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => setResettingEmployee(null)} disabled={resetLoading} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-200 transition-all disabled:opacity-50">
+                      Cancel
+                    </button>
+                    <button onClick={handleResetPassword} disabled={resetLoading} className="flex-1 py-3 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-violet-700 transition-all shadow-lg shadow-violet-200 disabled:opacity-50">
+                      {resetLoading ? 'Resetting...' : 'Confirm Reset'}
+                    </button>
+                  </div>
+                </>
+              )}
             </motion.div>
           </div>
         )}

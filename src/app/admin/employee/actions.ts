@@ -330,3 +330,40 @@ export async function updateEmployeeImage(userId: string, imageUrl: string) {
   await writeAuditLog(session.user.id, 'UPDATE', 'EMPLOYEE', userId, `Updated profile photo`)
   return { success: true }
 }
+
+// ── Reset Employee Password (Admin Only) ─────────────────────────────
+export async function resetEmployeePassword(userId: string) {
+  const session = await auth()
+  const roleName = (session?.user as any)?.roleName
+  if (!['Super Admin', 'Corporate Admin'].includes(roleName)) return { error: 'Unauthorized' }
+
+  const defaultPassword = 'password123'
+  const passwordHash = await bcrypt.hash(defaultPassword, 12)
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      password: passwordHash,
+      forcePasswordChange: true,
+    }
+  })
+
+  // Also update Employee table's passwordHash if it exists
+  const emp = await prisma.employee.findUnique({ where: { userId } })
+  if (emp) {
+    await prisma.employee.update({
+      where: { userId },
+      data: { passwordHash, passwordChanged: false }
+    })
+  }
+
+  await writeAuditLog(
+    session!.user!.id!,
+    'RESET_PASSWORD',
+    'EMPLOYEE',
+    userId,
+    `Password reset to default by ${roleName}. Employee must change password on next login.`
+  )
+
+  return { success: true }
+}
