@@ -451,9 +451,37 @@ function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onView
         </div>
         <div className="grid grid-cols-2 gap-2">
           {isPDF ? (
-            <><button onClick={() => onViewPdf(article.pdfUrl)} className="flex items-center justify-center gap-1.5 py-2.5 bg-primary/5 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"><Eye className="w-3.5 h-3.5" /> View</button>
-            <a href={article.pdfUrl} download className="flex items-center justify-center gap-1.5 py-2.5 bg-gray-50 text-gray-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all"><Download className="w-3.5 h-3.5" /> Get</a></>
-          ) : (<Link href={`/intranet/knowledge/${article.id}`} className="col-span-2 flex items-center justify-center gap-2 py-2.5 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 shadow-md transition-all">Read Article <ArrowRight className="w-4 h-4" /></Link>)}
+            <>
+              <button onClick={() => onViewPdf(article.pdfUrl)} className="flex items-center justify-center gap-1.5 py-2.5 bg-primary/5 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all">
+                <Eye className="w-3.5 h-3.5" /> View
+              </button>
+              <button 
+                onClick={async () => {
+                  try {
+                    const response = await fetch(article.pdfUrl);
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `${article.title.replace(/[/\\?%*:|"<>]/g, '-')}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                  } catch (error) {
+                    window.open(article.pdfUrl, '_blank');
+                  }
+                }}
+                className="flex items-center justify-center gap-1.5 py-2.5 bg-gray-50 text-gray-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" /> Get
+              </button>
+            </>
+          ) : (
+            <Link href={`/intranet/knowledge/${article.id}`} className="col-span-2 flex items-center justify-center gap-2 py-2.5 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 shadow-md transition-all">
+              Read Article <ArrowRight className="w-4 h-4" />
+            </Link>
+          )}
         </div>
       </div>
     </motion.div>
