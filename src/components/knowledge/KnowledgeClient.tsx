@@ -407,7 +407,13 @@ function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onView
   }, [article.reactions, userId])
 
   return (
-    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="group bg-white rounded-[2rem] overflow-hidden shadow-soft border border-gray-50 flex flex-col">
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      whileHover={{ y: -8, scale: 1.01 }}
+      transition={{ delay: index * 0.05 }} 
+      className="group bg-white rounded-[2rem] overflow-hidden shadow-soft border border-gray-50 flex flex-col hover:shadow-2xl transition-shadow duration-300"
+    >
       {/* Image/PDF area — edge-to-edge, title bar overlaid at top */}
       <div className="relative h-44 overflow-hidden bg-gray-100">
         {isPDF && !article.imageUrl ? (
@@ -422,7 +428,7 @@ function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onView
         )}
 
         {/* Title bar pinned at top of image */}
-        <div className="absolute top-0 inset-x-0 bg-black/60 backdrop-blur-sm px-4 py-2.5 z-20">
+        <div className="absolute top-0 inset-x-0 bg-primary/90 backdrop-blur-md px-4 py-2.5 z-20 border-b border-white/10">
           <h3 className="text-[11px] font-black text-white uppercase tracking-wide leading-snug line-clamp-1">
             {cleanTitle(article.title)}{article.isMultipart && <span className="text-gold-leeds ml-2">Part {article.partNumber}</span>}
           </h3>
