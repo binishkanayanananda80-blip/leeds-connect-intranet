@@ -456,21 +456,10 @@ function KnowledgeCard({ article, index, userId, onReact, onCommentClick, onView
                 <Eye className="w-3.5 h-3.5" /> View
               </button>
               <button 
-                onClick={async () => {
-                  try {
-                    const response = await fetch(article.pdfUrl);
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `${article.title.replace(/[/\\?%*:|"<>]/g, '-')}.pdf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-                  } catch (error) {
-                    window.open(article.pdfUrl, '_blank');
-                  }
+                onClick={() => {
+                  const safeName = article.title.replace(/[/\\?%*:|"<>]/g, '-');
+                  const downloadUrl = `/api/proxy-download?url=${encodeURIComponent(article.pdfUrl)}&filename=${encodeURIComponent(safeName)}`;
+                  window.location.href = downloadUrl;
                 }}
                 className="flex items-center justify-center gap-1.5 py-2.5 bg-gray-50 text-gray-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all"
               >
