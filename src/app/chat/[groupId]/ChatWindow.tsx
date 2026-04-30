@@ -2,7 +2,8 @@
 
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Send, Menu, Paperclip as PaperclipIcon, Mic, Smile, MoreVertical, Trash2, CheckCheck, RefreshCw, FileIcon, ImageIcon, Download, X as CloseIcon, Share2, Square, CheckSquare, Search, Info, Pin, ChevronDown } from 'lucide-react'
+import Link from 'next/link'
+import { Send, Menu, Paperclip as PaperclipIcon, Mic, Smile, MoreVertical, Trash2, CheckCheck, RefreshCw, FileIcon, ImageIcon, Download, X as CloseIcon, Share2, Square, CheckSquare, Search, Info, Pin, ChevronDown, ChevronLeft } from 'lucide-react'
 import { sendMessage, deleteMessage, deleteChatGroup, forwardMessages, toggleReaction, pinMessage } from '../actions'
 import { ForwardModal } from '@/components/chat/ForwardModal'
 import { DeleteConversationModal } from '@/components/chat/DeleteConversationModal'
@@ -292,15 +293,20 @@ export function ChatWindow({ title, avatarUrl, messages: initialMessages, curren
       
       {/* Header */}
       <header className="px-4 py-2 border-b bg-[#F0F2F5] flex items-center justify-between shrink-0 z-20 shadow-sm">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setShowInfo(true)}>
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
-            {avatarUrl ? <img src={avatarUrl} alt={title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-[#5A2D82] text-white font-bold">{title.charAt(0)}</div>}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-gray-900 truncate text-sm sm:text-[15px]">{title}</h2>
-            <p className="text-[10px] sm:text-[12px] text-gray-500 truncate">
-              {isTyping.length > 0 ? `${isTyping[0].userName} is typing...` : (groupData?.type === 'GROUP' ? `${groupData.members.length} members` : 'online')}
-            </p>
+        <div className="flex items-center gap-2 min-w-0">
+          <Link href="/chat" className="md:hidden p-2 -ml-2 hover:bg-gray-200 rounded-full text-gray-600 transition-colors">
+            <ChevronLeft size={24} />
+          </Link>
+          <div className="flex items-center gap-3 cursor-pointer min-w-0" onClick={() => setShowInfo(true)}>
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 shrink-0">
+              {avatarUrl ? <img src={avatarUrl} alt={title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-[#5A2D82] text-white font-bold">{title.charAt(0)}</div>}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="font-semibold text-gray-900 truncate text-sm sm:text-[15px]">{title}</h2>
+              <p className="text-[10px] sm:text-[12px] text-gray-500 truncate">
+                {isTyping.length > 0 ? `${isTyping[0].userName} is typing...` : (groupData?.type === 'GROUP' ? `${groupData.members.length} members` : 'online')}
+              </p>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">

@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { ChatSidebar } from './ChatSidebar'
+import { ChatLayoutClient } from './ChatLayoutClient'
 
 export default async function ChatLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -60,9 +61,8 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
   }))
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] pt-0 md:pt-4 pb-16 md:pb-4 px-0 md:px-4 gap-4 overflow-hidden">
-      {/* LEFT: Conversations list */}
-      <div className="w-full md:w-80 lg:w-[360px] flex flex-col overflow-hidden shrink-0 bg-white rounded-[2rem] shadow-soft border border-gray-100">
+    <ChatLayoutClient
+      sidebar={
         <ChatSidebar 
           groups={groups} 
           availableUsers={availableUsers} 
@@ -70,11 +70,9 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
           currentUser={me}
           categories={categories}
         />
-      </div>
-      {/* RIGHT: Active conversation */}
-      <div className="flex-1 flex flex-col overflow-hidden relative hidden md:flex bg-white rounded-[2rem] shadow-soft border border-gray-100">
-        {children}
-      </div>
-    </div>
+      }
+    >
+      {children}
+    </ChatLayoutClient>
   )
 }

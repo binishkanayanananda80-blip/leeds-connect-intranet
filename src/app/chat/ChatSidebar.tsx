@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { format, isToday, isYesterday } from 'date-fns'
 import { Search, Plus, MessageSquare, Users, Check, X, ChevronDown, Pin, Archive, BellOff, Trash2, LogOut } from 'lucide-react'
 import { createGroupChat, createDirectMessage, markAsRead, removeGroupMember, clearChatMessages, togglePinChat, toggleArchiveChat, toggleMuteChat, deleteChatGroup } from './actions'
@@ -392,7 +393,7 @@ export function ChatSidebar({ groups, availableUsers, currentUserId, currentUser
 
             return (
               <div key={g.id} className="relative">
-                <a href={`/chat/${g.id}`} onContextMenu={e => handleContextMenu(e, g)}
+                <Link href={`/chat/${g.id}`} onContextMenu={e => handleContextMenu(e, g)}
                   className={cn('flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50',
                     isActive ? 'bg-[#F0F2F5]' : 'hover:bg-[#F5F5F5]'
                   )}
@@ -424,7 +425,7 @@ export function ChatSidebar({ groups, availableUsers, currentUserId, currentUser
                       </div>
                     </div>
                   </div>
-                </a>
+                </Link>
               </div>
             )
           })}
