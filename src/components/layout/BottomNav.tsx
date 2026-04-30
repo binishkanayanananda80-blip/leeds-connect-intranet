@@ -5,8 +5,8 @@ import { Home, Megaphone, Users, Bell, MessageSquare, Video, MoreHorizontal } fr
 import { cn } from './IntranetSidebar';
 
 const mobileNavItems = [
-  { name: 'Home', href: '/', icon: Home },
-  { name: 'News', href: '/announcements', icon: Megaphone },
+  { name: 'Home', href: '/intranet', icon: Home },
+  { name: 'News', href: '/intranet/announcements', icon: Megaphone },
   { name: 'Chat', href: '/chat', icon: MessageSquare },
   { name: 'Meetings', href: '/meetings', icon: Video },
   { name: 'More', href: '/menu', icon: MoreHorizontal },

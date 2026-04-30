@@ -51,7 +51,7 @@ export async function createAnnouncement(formData: FormData) {
   // Precision Notification
   await notifyTargetedUsers({
     message: `📢 New announcement: "${title.trim()}"`,
-    link: '/announcements',
+    link: '/intranet/announcements',
     branchId: branchId || null,
     categoryIds: categoryIds,
     excludeUserId: session.user.id

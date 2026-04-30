@@ -14,8 +14,8 @@ export const authConfig = {
       const protectedPaths = [
         '/',
         '/intranet',
-        '/announcements', '/directory', '/intranet/knowledge', '/welfare',
-        '/birthday-wall', '/celebrations', '/leadership',
+        '/intranet/announcements', '/intranet/directory', '/intranet/knowledge', '/intranet/welfare',
+        '/intranet/birthday-wall', '/intranet/celebrations', '/intranet/leadership',
         '/admin', '/settings', '/menu', '/force-change-password',
       ];
       const isOnDashboard = protectedPaths.some(

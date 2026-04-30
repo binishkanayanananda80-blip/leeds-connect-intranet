@@ -22,7 +22,7 @@ export default async function NewAnnouncementPage() {
 
   // Only certain roles can post announcements
   if (!['Super Admin', 'Corporate Admin', 'IT Admin', 'Network Admin', 'Branch Admin'].includes(roleName)) {
-    redirect('/announcements')
+    redirect('/intranet/announcements')
   }
 
   const branches = await prisma.branch.findMany({ 
@@ -37,7 +37,7 @@ export default async function NewAnnouncementPage() {
       <div className="max-w-3xl mx-auto px-6 pt-12 space-y-8">
         
         <header className="space-y-4">
-          <Link href="/announcements" className="flex items-center gap-2 text-sm font-black uppercase text-primary/50 hover:text-primary transition-colors">
+          <Link href="/intranet/announcements" className="flex items-center gap-2 text-sm font-black uppercase text-primary/50 hover:text-primary transition-colors">
             <ArrowLeft className="w-4 h-4" /> Back to Intelligence
           </Link>
           <div className="flex items-center gap-4">
@@ -126,7 +126,7 @@ export default async function NewAnnouncementPage() {
           </div>
 
           <div className="flex items-center justify-end gap-4 pt-10">
-            <Link href="/announcements" className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors">
+            <Link href="/intranet/announcements" className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors">
               Abort Transmission
             </Link>
             <button
