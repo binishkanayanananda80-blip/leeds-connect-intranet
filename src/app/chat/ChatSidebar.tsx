@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { format, isToday, isYesterday } from 'date-fns'
-import { Search, Plus, MessageSquare, Users, Check, X, ChevronDown, Pin, Archive, BellOff, Trash2, LogOut } from 'lucide-react'
+import { Search, Plus, MessageSquare, Users, Check, X, ChevronDown, Pin, Archive, BellOff, Trash2, LogOut, Camera } from 'lucide-react'
 import { createGroupChat, createDirectMessage, markAsRead, removeGroupMember, clearChatMessages, togglePinChat, toggleArchiveChat, toggleMuteChat, deleteChatGroup } from './actions'
 
 function cn(...classes: (string | boolean | undefined)[]) { return classes.filter(Boolean).join(' ') }
@@ -114,8 +114,10 @@ function NewGroupModal({ users, categories, currentUserId, onClose }: any) {
   const [description, setDescription] = useState('')
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
   const [categoryId, setCategoryId] = useState('')
+  const [iconUrl, setIconUrl] = useState('')
   const [search, setSearch] = useState('')
   const [isPending, setIsPending] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
 
   const filtered = users.filter((u: any) => u.id !== currentUserId && (u.name || '').toLowerCase().includes(search.toLowerCase()))
   const toggle = (id: string) => setSelectedMembers(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
@@ -124,9 +126,26 @@ function NewGroupModal({ users, categories, currentUserId, onClose }: any) {
     if (!name.trim() || selectedMembers.length === 0) return
     setIsPending(true)
     const fd = new FormData()
-    fd.set('name', name); fd.set('description', description); fd.set('categoryId', categoryId)
+    fd.set('name', name); fd.set('description', description); fd.set('categoryId', categoryId); fd.set('iconUrl', iconUrl)
     selectedMembers.forEach(id => fd.append('members', id))
     await createGroupChat(fd)
+  }
+
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/chat/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.url) setIconUrl(data.url)
+    } catch (err) {
+      alert('Upload failed')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   return (
@@ -183,7 +202,21 @@ function NewGroupModal({ users, categories, currentUserId, onClose }: any) {
           <>
             <div className="p-5 space-y-4 flex-1">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-3xl">📁</div>
+                <label className="relative group cursor-pointer shrink-0">
+                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-3xl overflow-hidden border-2 border-gray-100">
+                    {isUploading ? (
+                      <div className="w-5 h-5 border-2 border-[#5A2D82] border-t-transparent rounded-full animate-spin" />
+                    ) : iconUrl ? (
+                      <img src={iconUrl} alt="icon" className="w-full h-full object-cover" />
+                    ) : (
+                      '📁'
+                    )}
+                  </div>
+                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera size={16} className="text-white" />
+                  </div>
+                  <input type="file" className="hidden" accept="image/*" onChange={handleIconUpload} />
+                </label>
                 <input placeholder="Group name *" value={name} onChange={e => setName(e.target.value)} className="flex-1 border-b-2 border-gray-200 focus:border-[#5A2D82] py-2 text-sm font-semibold outline-none transition-colors" />
               </div>
               <input placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} className="w-full border-b border-gray-100 py-2 text-sm outline-none" />
