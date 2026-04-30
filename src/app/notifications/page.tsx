@@ -2,14 +2,18 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { 
-  Bell, CheckCircle2, AlertCircle, 
-  Megaphone, Clock, Filter 
+  Bell, Filter 
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { NotificationList } from '@/components/notifications/NotificationList'
+import { markAllAsRead, cleanupNotifications } from './actions'
 
 export default async function NotificationsPage() {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
+
+  // Run cleanup on page load (lazy deletion)
+  // This will delete read notifications after 1 hour (or 5 mins for OTPs)
+  await cleanupNotifications()
 
   const notifications = await prisma.notification.findMany({
     where: { userId: session.user.id },
@@ -29,38 +33,21 @@ export default async function NotificationsPage() {
           <button className="px-6 py-3 bg-white text-gray-400 rounded-2xl font-black uppercase tracking-widest text-[9px] border border-gray-100 flex items-center gap-2 hover:text-primary transition-all">
             <Filter size={14} /> Filter
           </button>
-          <button className="px-6 py-3 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-primary/20 hover:scale-105 transition-all">
-            Mark all as read
-          </button>
+          
+          <form action={markAllAsRead}>
+            <button 
+              type="submit"
+              className="px-6 py-3 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+            >
+              Mark all as read
+            </button>
+          </form>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto space-y-4">
         {notifications.length > 0 ? (
-          notifications.map((notif) => (
-            <div 
-              key={notif.id} 
-              className={`p-6 bg-white rounded-[2rem] shadow-premium border ${notif.isRead ? 'border-gray-50' : 'border-primary/10 bg-primary/5'} flex items-start gap-6 transition-all hover:scale-[1.01]`}
-            >
-              <div className={`p-3 rounded-2xl ${notif.isRead ? 'bg-gray-50 text-gray-400' : 'bg-white text-primary shadow-sm'}`}>
-                {notif.type === 'ANNOUNCEMENT' ? <Megaphone size={18} /> : 
-                 notif.type === 'ALERT' ? <AlertCircle size={18} /> : 
-                 <CheckCircle2 size={18} />}
-              </div>
-              
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center justify-between">
-                  <h3 className={`text-sm font-black uppercase tracking-tight ${notif.isRead ? 'text-slate-600' : 'text-black'}`}>
-                    {notif.title}
-                  </h3>
-                  <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                    <Clock size={12} /> {formatDistanceToNow(new Date(notif.createdAt))} ago
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed">{notif.message}</p>
-              </div>
-            </div>
-          ))
+          <NotificationList notifications={notifications} />
         ) : (
           <div className="bg-white rounded-[2.5rem] shadow-premium border border-gray-50 p-20 flex flex-col items-center text-center space-y-6">
             <div className="w-20 h-20 rounded-3xl bg-gray-50 flex items-center justify-center text-gray-200">

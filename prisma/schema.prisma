@@ -567,9 +567,12 @@ model Comment {
 model Notification {
   id               String             @id @default(cuid())
   userId           String?
+  title            String?
   message          String
+  type             String?            @default("ALERT")
   link             String?
   isRead           Boolean            @default(false)
+  readAt           DateTime?
   createdAt        DateTime           @default(now())
   user             User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
   targetCategories EmployeeCategory[] @relation("EmployeeCategoryToNotification")
