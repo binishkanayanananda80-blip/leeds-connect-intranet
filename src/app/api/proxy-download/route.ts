@@ -10,8 +10,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const response = await fetch(url)
-    if (!response.ok) throw new Error('Failed to fetch file')
+    let targetUrl = url
+    if (url.startsWith('/')) {
+      const protocol = req.headers.get('x-forwarded-proto') || 'https'
+      const host = req.headers.get('host')
+      targetUrl = `${protocol}://${host}${url}`
+    }
+
+    const response = await fetch(targetUrl)
+    if (!response.ok) throw new Error(`Failed to fetch file: ${response.statusText}`)
     
     const blob = await response.blob()
     const safeFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`
